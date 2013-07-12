@@ -2521,6 +2521,25 @@ CAvgGrad_TransLM::~CAvgGrad_TransLM(void) {
 
 void CAvgGrad_TransLM::SetResidual(double *val_residual, double **Jacobian_i, double **Jacobian_j, CConfig *config) {
 
+	//************************************************//
+	// Please do not delete //SU2_CPP2C comment lines //
+	//************************************************//
+
+	//SU2_CPP2C START CAvgGrad_TransLM::SetResidual
+	//SU2_CPP2C CALL_LIST START
+	//SU2_CPP2C INVARS *TransVar_i
+	//SU2_CPP2C OUTVARS *val_residual
+	//SU2_CPP2C VARS DOUBLE Laminar_Viscosity_i Eddy_Viscosity_i
+	//SU2_CPP2C VARS DOUBLE Laminar_Viscosity_j Eddy_Viscosity_j
+  //SU2_CPP2C VARS DOUBLE SCALAR c_a1 c_e1 c_a2 c_e2 c_theta alpha_global flen_global
+	//SU2_CPP2C CALL_LIST END
+
+	//SU2_CPP2C DEFINE nDim
+
+	//SU2_CPP2C DECL_LIST START
+	//SU2_CPP2C VARS DOUBLE *proj_vector_ij, Edge_Vector
+	//SU2_CPP2C VARS DOUBLE SCALAR Vorticity 
+	//SU2_CPP2C DECL_LIST END
   double Density_Grad_i[nDim], Density_Grad_j[nDim], Conservative_Grad_i[nDim], Conservative_Grad_j[nDim];
   double Primitive_Grad_i[nDim], Primitive_Grad_j[nDim];
 
@@ -2574,6 +2593,7 @@ void CAvgGrad_TransLM::SetResidual(double *val_residual, double **Jacobian_i, do
 
 	val_residual[0] = Inter_Viscosity_Mean*Proj_Mean_GradTransVar_Kappa[0];
 	val_residual[1] = REth_Viscosity_Mean*Proj_Mean_GradTransVar_Kappa[1];
+	//SU2_CPP2C END CAvgGrad_TransLM::SetResidual
 
 	/*--- For Jacobians -> Use of TSL approx. to compute derivatives of the gradients ---*/
 	if (implicit) {
@@ -2581,6 +2601,12 @@ void CAvgGrad_TransLM::SetResidual(double *val_residual, double **Jacobian_i, do
 		Jacobian_j[0][0] = (0.5*Proj_Mean_GradTransVar_Kappa[0]+Inter_Viscosity_Mean*proj_vector_ij);
 		Jacobian_i[1][1] = (0.5*Proj_Mean_GradTransVar_Kappa[1]-REth_Viscosity_Mean*proj_vector_ij);
 		Jacobian_j[1][1] = (0.5*Proj_Mean_GradTransVar_Kappa[1]+REth_Viscosity_Mean*proj_vector_ij);
+
+    /*-- Zero out other terms of Jacobian --*/
+    Jacobian_i[1][0] = 0.0;
+    Jacobian_j[1][0] = 0.0;
+    Jacobian_i[0][1] = 0.0;
+    Jacobian_j[0][1] = 0.0;
 	}
 
 }
