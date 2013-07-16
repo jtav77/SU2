@@ -2525,7 +2525,7 @@ void CAvgGrad_TransLM::SetResidual(double *val_residual, double **Jacobian_i, do
 	// Please do not delete //SU2_CPP2C comment lines //
 	//************************************************//
 
-  double TransVar_i[nVar], TransVar_j[nVar], val_residual[nVar];
+  double TransVar_id[nVar], TransVar_jd[nVar], val_residuald[nVar];
 	//SU2_CPP2C START CAvgGrad_TransLM::SetResidual
 	//SU2_CPP2C CALL_LIST START
 	//SU2_CPP2C INVARS *TransVar_i *TransVar_j
@@ -2603,7 +2603,31 @@ void CAvgGrad_TransLM::SetResidual(double *val_residual, double **Jacobian_i, do
 
 	/*--- For Jacobians -> Use of TSL approx. to compute derivatives of the gradients ---*/
 	if (implicit) {
-    SetResidual_d(TransVar_i, TransVar_id,  TransVar_j,  TransVar_jd,  val_residual,  val_residuald)
+
+    TransVar_id[0] = 1.0; TransVar_id[1] = 0.0;
+    TransVar_jd[0] = 0.0; TransVar_jd[1] = 0.0;
+    SetResidual_d(TransVar_i, TransVar_id,  TransVar_j,  TransVar_jd,  val_residual,  val_residuald);
+    Jacobian_i[0][0] = val_residuald[0];
+    Jacobian_i[1][0] = val_residuald[1];
+
+    TransVar_id[0] = 0.0; TransVar_id[1] = 0.0;
+    TransVar_jd[0] = 1.0; TransVar_jd[1] = 0.0;
+    SetResidual_d(TransVar_i, TransVar_id,  TransVar_j,  TransVar_jd,  val_residual,  val_residuald);
+    Jacobian_j[0][0] = val_residuald[0];
+    Jacobian_j[1][0] = val_residuald[1];
+
+    TransVar_id[0] = 0.0; TransVar_id[1] = 1.0;
+    TransVar_jd[0] = 0.0; TransVar_jd[1] = 0.0;
+    SetResidual_d(TransVar_i, TransVar_id,  TransVar_j,  TransVar_jd,  val_residual,  val_residuald);
+    Jacobian_i[0][1] = val_residuald[0];
+    Jacobian_i[1][1] = val_residuald[1];
+
+    TransVar_id[0] = 0.0; TransVar_id[1] = 0.0;
+    TransVar_jd[0] = 0.0; TransVar_jd[1] = 1.0;
+    SetResidual_d(TransVar_i, TransVar_id,  TransVar_j,  TransVar_jd,  val_residual,  val_residuald);
+    Jacobian_j[0][1] = val_residuald[0];
+    Jacobian_j[1][1] = val_residuald[1];
+
 		//Jacobian_i[0][0] = (0.5*Proj_Mean_GradTransVar_Kappa[0]-Inter_Viscosity_Mean*proj_vector_ij);
 		//Jacobian_j[0][0] = (0.5*Proj_Mean_GradTransVar_Kappa[0]+Inter_Viscosity_Mean*proj_vector_ij);
 		//Jacobian_i[1][1] = (0.5*Proj_Mean_GradTransVar_Kappa[1]-REth_Viscosity_Mean*proj_vector_ij);
