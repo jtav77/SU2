@@ -3875,6 +3875,9 @@ public:
 	 * \param[in] config - Definition of the particular problem.
 	 */
 	void SetResidual(double *val_residual, double **Jacobian_i, double **Jacobian_j, CConfig *config);
+
+  void SetResidual_d(double *TransVar_i, double *TransVar_id, double *TransVar_j, double *TransVar_jd, double *val_residual, double *val_residuald);
+
 };
 
 /*! 
