@@ -222,7 +222,7 @@ void CSourcePieceWise_TransLM::SetResidual_TransLM(double *val_residual, double 
 	//************************************************//
 	// Please do not delete //SU2_CPP2C comment lines //
 	//************************************************//
-
+  
 	//SU2_CPP2C START CSourcePieceWise_TransLM::SetResidual_TransLM
 	//SU2_CPP2C CALL_LIST START
 	//SU2_CPP2C INVARS *TransVar_i
@@ -230,37 +230,36 @@ void CSourcePieceWise_TransLM::SetResidual_TransLM(double *val_residual, double 
 	//SU2_CPP2C VARS DOUBLE *U_i **PrimVar_Grad_i Laminar_Viscosity_i Eddy_Viscosity_i dist_i
   //SU2_CPP2C VARS DOUBLE SCALAR c_a1 c_e1 c_a2 c_e2 c_theta alpha_global flen_global
 	//SU2_CPP2C CALL_LIST END
-
+  
 	//SU2_CPP2C DEFINE nDim
-
+  
 	//SU2_CPP2C DECL_LIST START
-	//SU2_CPP2C VARS DOUBLE SCALAR Vorticity 
+	//SU2_CPP2C VARS DOUBLE SCALAR Vorticity
 	//SU2_CPP2C DECL_LIST END
-
+  
 	/*-- Local intermediate variables --*/
 	double rey_tc, flen, re_v, strain, f_onset1,f_onset2,f_onset3,f_onset,f_turb,tu;
-    
+  
 	double prod, des;
 	double f_lambda, re_theta, rey, re_theta_lim, r_t, rey_t, mach;
 	double Velocity_Mag = 0.0, du_ds, theta, lambda, time_scale, delta_bl, delta, f_wake, var1, f_theta;
 	double theta_bl, f_reattach;
 	double dU_dx, dU_dy, dU_dz;
-
+  
 	//SU2_CPP2C COMMENT START
   double val_residuald[2], TransVar_id[2];
-
+  
 	//SU2_CPP2C COMMENT END
-    
+  
 	val_residual[0] = 0.0;
 	val_residual[1] = 0.0;
   
 	//SU2_CPP2C COMMENT START
 	implicit = (config->GetKind_TimeIntScheme_Flow() == EULER_IMPLICIT);
+  
 	if (implicit) {
 		val_Jacobian_i[0][0] = 0.0;
 		val_Jacobian_i[1][0] = 0.0;
-		val_Jacobian_i[0][1] = 0.0;
-		val_Jacobian_i[1][1] = 0.0;
 	}
 	//SU2_CPP2C COMMENT END
   
@@ -274,73 +273,66 @@ void CSourcePieceWise_TransLM::SetResidual_TransLM(double *val_residual, double 
   mach = config->GetMach_FreeStreamND();
 	tu   = config->GetTurbulenceIntensity_FreeStream();
 	//SU2_CPP2C COMMENT END
-
+  
 	/*--- Compute vorticity and strain (TODO: Update for 3D) ---*/
   Vorticity = fabs(PrimVar_Grad_i[1][1]-PrimVar_Grad_i[2][0]);
   
   /*-- Strain = sqrt(2*Sij*Sij) --*/
 	strain = sqrt(2.*(    PrimVar_Grad_i[1][0]*PrimVar_Grad_i[1][0]
-                     +  0.5*pow(PrimVar_Grad_i[1][1]+PrimVar_Grad_i[2][0],2)
-                     +  PrimVar_Grad_i[2][1]*PrimVar_Grad_i[2][1]  ));
-    
+                    +  0.5*pow(PrimVar_Grad_i[1][1]+PrimVar_Grad_i[2][0],2)
+                    +  PrimVar_Grad_i[2][1]*PrimVar_Grad_i[2][1]  ));
+  
 	/*-- Note: no incompressible for now! --*/
-    
+  
 	if (dist_i > 0.0) {   // Only operate away from wall
-        
+    
 		/*-- Intermittency eq.: --*/
     
     rey_tc = (4.45*pow(tu,3) - 5.7*pow(tu,2) + 1.37*tu + 0.585)*TransVar_i[1];
     flen   = 0.171*pow(tu,2) - 0.0083*tu + 0.0306;
-
+    
 		re_v   = U_i[0]*pow(dist_i,2.)/Laminar_Viscosity_i*strain;  // Vorticity Reynolds number
-        
+    
     /*-- f_onset controls transition onset location --*/
 		r_t      = Eddy_Viscosity_i/Laminar_Viscosity_i;
 		f_onset1 = re_v / (2.193*rey_tc);
 		f_onset2 = min(max(f_onset1, pow(f_onset1,4.)), 2.);
 		f_onset3 = max(1. - pow(0.4*r_t,3),0.);
 		f_onset  = max(f_onset2 - f_onset3, 0.);
-        
+    
 		f_turb = exp(-pow(0.25*r_t,4));  // Medida eq. 10
-        
+    
 		prod = flen*c_a1*U_i[0]*strain*sqrt(f_onset*TransVar_i[0]);
 		prod = prod*(1. - c_e1*TransVar_i[0]);
-        
+    
 		des = c_a2*U_i[0]*Vorticity*TransVar_i[0]*f_turb;
 		des = des*(c_e2*TransVar_i[0] - 1.);
-        
+    
 		val_residual[0] = prod - des;
-        
+    
 		/*-- REtheta eq: --*/
-		if (nDim==2) {
-			Velocity_Mag = sqrt(U_i[1]*U_i[1]+U_i[2]*U_i[2])/U_i[0];
-		} else if (nDim==3) {
-			Velocity_Mag = sqrt(U_i[1]*U_i[1]+U_i[2]*U_i[2]+U_i[3]*U_i[3])/U_i[0];
-		}
-        
+		if (nDim == 2) Velocity_Mag = sqrt(U_i[1]*U_i[1]+U_i[2]*U_i[2])/U_i[0];
+		else if (nDim==3) Velocity_Mag = sqrt(U_i[1]*U_i[1]+U_i[2]*U_i[2]+U_i[3]*U_i[3])/U_i[0];
+    
 		/*-- Gradient of velocity magnitude ---*/
 		dU_dx = 0.5*Velocity_Mag*( 2*U_i[1]/U_i[0]*PrimVar_Grad_i[1][0]
                               +2*U_i[2]/U_i[0]*PrimVar_Grad_i[2][0]);
-		if (nDim==3)
-			dU_dx += 0.5*Velocity_Mag*( 2*U_i[3]/U_i[0]*PrimVar_Grad_i[3][0]);
-        
+		if (nDim == 3)
+      dU_dx += 0.5*Velocity_Mag*( 2*U_i[3]/U_i[0]*PrimVar_Grad_i[3][0]);
 		dU_dy = 0.5*Velocity_Mag*( 2*U_i[1]/U_i[0]*PrimVar_Grad_i[1][1]
                               +2*U_i[2]/U_i[0]*PrimVar_Grad_i[2][1]);
-		if (nDim==3)
-			dU_dy += 0.5*Velocity_Mag*( 2*U_i[3]/U_i[0]*PrimVar_Grad_i[3][1]);
-        
-		if (nDim==3)
-			dU_dz = 0.5*Velocity_Mag*( 2*U_i[1]/U_i[0]*PrimVar_Grad_i[1][2]
-                                      +2*U_i[2]/U_i[0]*PrimVar_Grad_i[2][2]
-                                      +2*U_i[3]/U_i[0]*PrimVar_Grad_i[3][2]);
-        
-		du_ds = U_i[1]/(U_i[0]*Velocity_Mag) * dU_dx +  // Streamwise velocity derivative
-        U_i[2]/(U_i[0]*Velocity_Mag) * dU_dy;
-		if (nDim==3)
-			du_ds += U_i[3]/(U_i[0]*Velocity_Mag) * dU_dz;
-        
+		if (nDim == 3) {
+      dU_dy += 0.5*Velocity_Mag*( 2*U_i[3]/U_i[0]*PrimVar_Grad_i[3][1]);
+      dU_dz = 0.5*Velocity_Mag*( 2*U_i[1]/U_i[0]*PrimVar_Grad_i[1][2]
+                                +2*U_i[2]/U_i[0]*PrimVar_Grad_i[2][2]
+                                +2*U_i[3]/U_i[0]*PrimVar_Grad_i[3][2]);
+    }
+    
+		du_ds = U_i[1]/(U_i[0]*Velocity_Mag) * dU_dx + U_i[2]/(U_i[0]*Velocity_Mag) * dU_dy;
+		if (nDim==3) du_ds += U_i[3]/(U_i[0]*Velocity_Mag) * dU_dz;
+    
 		re_theta_lim = 20.;
-        
+    
 		/*-- Fixed-point iterations to solve REth correlation --*/
 		f_lambda = 1.;
 		for (int iter=0; iter<10; iter++) {
@@ -350,80 +342,80 @@ void CSourcePieceWise_TransLM::SetResidual_TransLM(double *val_residual, double 
 				re_theta = 331.5 * f_lambda*pow(tu-0.5658,-0.671);
 			}
 			re_theta = max(re_theta, re_theta_lim);
-            
+      
 			theta  = re_theta * Laminar_Viscosity_i / (U_i[0]*Velocity_Mag);
-            
+      
 			lambda = U_i[0]*theta*theta*du_ds / Laminar_Viscosity_i;
 			lambda = min(max(-0.1,lambda),0.1);
-            
+      
 			if (lambda<=0.0) {
 				f_lambda = 1. - (-12.986*lambda - 123.66*lambda*lambda -
-                                 405.689*lambda*lambda*lambda)*exp(-pow(2./3*tu,1.5));
+                         405.689*lambda*lambda*lambda)*exp(-pow(2./3*tu,1.5));
 			} else {
 				f_lambda = 1. + 0.275*(1.-exp(-35.*lambda))*exp(-2.*tu);
 			}
 		}
-
+    
 		/*-- Calculate blending function f_theta --*/
 		time_scale = 500.0*Laminar_Viscosity_i/(U_i[0]*Velocity_Mag*Velocity_Mag);
-
-    // Deactivated the f_wake parameter... 
+    
+    // Deactivated the f_wake parameter...
 		//theta_bl   = TransVar_i[1]*Laminar_Viscosity_i / (U_i[0]*Velocity_Mag);
 		//delta_bl   = 7.5*theta_bl;
 		//delta      = 50.0*Vorticity*dist_i/Velocity_Mag*delta_bl + 1e-20;
-    //    
+    //
 		//f_wake = 1.;
-        
+    
 		var1 = (TransVar_i[0]-1./c_e2)/(1.0-1./c_e2);
 		var1 = 1. - pow(var1,2);
     
 		//f_theta = min(max(f_wake*exp(-pow(dist_i/delta,4)), var1),1.0);
 		f_theta = min(var1,1.0);
-        
+    
 		val_residual[1] = c_theta*U_i[0]/time_scale *  (1.-f_theta) * (re_theta-TransVar_i[1]);
-	
+    
 	  //SU2_CPP2C COMMENT START
-    cout << "val_res0: "  << val_residual[0]      << endl;
-    cout << "val_res1: "  << val_residual[1]      << endl;
-    cout << "dist_i: "    << dist_i               << endl;
-    cout << "re_v: "      << re_v                 << endl;
-    cout << "c_a1: "      << c_a1                 << endl;
-    cout << "strain: "    << strain               << endl;
-    cout << "primgrad10: "<< PrimVar_Grad_i[1][0] << endl;
-    cout << "primgrad11: "<< PrimVar_Grad_i[1][1] << endl;
-    cout << "primgrad20: "<< PrimVar_Grad_i[2][0] << endl;
-    cout << "primgrad21: "<< PrimVar_Grad_i[2][1] << endl;
-    cout << "f_onset: "   << f_onset              << endl;
-    cout << "TransVar0: " << TransVar_i[0]        << endl;
-    cout << "prod: "      << prod                 << endl;
-    cout << "c_a2: "      << c_a2                 << endl;
-    cout << "Vorticity: " << Vorticity            << endl;
-    cout << "f_turb: "    << f_turb               << endl;
-    cout << "des: "       << des                  << endl;
-    cout << "du_ds: "     << du_ds                << endl;
-    cout << "r_t:    "    << r_t                  << endl;
-    cout << "rey_tc: "    << rey_tc               << endl;
-    cout << "re_theta: "  << re_theta             << endl;
-        
+    //    cout << "val_res0: "  << val_residual[0]      << endl;
+    //    cout << "val_res1: "  << val_residual[1]      << endl;
+    //    cout << "dist_i: "    << dist_i               << endl;
+    //    cout << "re_v: "      << re_v                 << endl;
+    //    cout << "c_a1: "      << c_a1                 << endl;
+    //    cout << "strain: "    << strain               << endl;
+    //    cout << "primgrad10: "<< PrimVar_Grad_i[1][0] << endl;
+    //    cout << "primgrad11: "<< PrimVar_Grad_i[1][1] << endl;
+    //    cout << "primgrad20: "<< PrimVar_Grad_i[2][0] << endl;
+    //    cout << "primgrad21: "<< PrimVar_Grad_i[2][1] << endl;
+    //    cout << "f_onset: "   << f_onset              << endl;
+    //    cout << "TransVar0: " << TransVar_i[0]        << endl;
+    //    cout << "prod: "      << prod                 << endl;
+    //    cout << "c_a2: "      << c_a2                 << endl;
+    //    cout << "Vorticity: " << Vorticity            << endl;
+    //    cout << "f_turb: "    << f_turb               << endl;
+    //    cout << "des: "       << des                  << endl;
+    //    cout << "du_ds: "     << du_ds                << endl;
+    //    cout << "r_t:    "    << r_t                  << endl;
+    //    cout << "rey_tc: "    << rey_tc               << endl;
+    //    cout << "re_theta: "  << re_theta             << endl;
+    
 		/*-- Calculate term for separation correction --*/
 		f_reattach = exp(-pow(0.05*r_t,4));
 		gamma_sep = s1*max(0.,re_v/(3.235*rey_tc)-1.)*f_reattach;
 		gamma_sep = min(gamma_sep,2.0)*f_theta;
-        
+    
 		/*--- Implicit part ---*/
     TransVar_id[0] = 1.0; TransVar_id[1] = 0.0;
     CSourcePieceWise_TransLM__SetResidual_TransLM_d(TransVar_i, TransVar_id, val_residual, val_residuald, config);
     val_Jacobian_i[0][0] = val_residuald[0];
     val_Jacobian_i[1][0] = val_residuald[1];
-
+    
     TransVar_id[0] = 0.0; TransVar_id[1] = 1.0;
     CSourcePieceWise_TransLM__SetResidual_TransLM_d(TransVar_i, TransVar_id, val_residual, val_residuald, config);
     val_Jacobian_i[0][1] = val_residuald[0];
     val_Jacobian_i[1][1] = val_residuald[1];
-
+    
 	  //SU2_CPP2C COMMENT END
 	}
-    //SU2_CPP2C END CSourcePieceWise_TransLM::SetResidual_TransLM
+  //SU2_CPP2C END CSourcePieceWise_TransLM::SetResidual_TransLM
 }
 
 

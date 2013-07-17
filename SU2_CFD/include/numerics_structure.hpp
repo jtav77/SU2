@@ -2419,46 +2419,6 @@ public:
 };
 
 /*! 
- * \class CUpwLin_TransLM
- * \brief Class for performing a linear upwind solver for the Spalart-Allmaras turbulence model equations with transition
- * \ingroup ConvDiscr
- * \author A. Aranake
- * \version 2.0.5
- */
-class CUpwLin_TransLM : public CNumerics {
-private:
-	double *Velocity_i;
-	double *Velocity_j;
-	bool implicit, rotating_frame, grid_movement, incompressible;
-	double Density_i, Density_j, q_ij, a0, a1;
-	unsigned short iDim;
-
-public:
-
-	/*! 
-	 * \brief Constructor of the class.
-	 * \param[in] val_nDim - Number of dimensions of the problem.
-	 * \param[in] val_nVar - Number of variables of the problem.
-	 * \param[in] config - Definition of the particular problem.
-	 */
-	CUpwLin_TransLM(unsigned short val_nDim, unsigned short val_nVar, CConfig *config);
-
-	/*! 
-	 * \brief Destructor of the class. 
-	 */
-	~CUpwLin_TransLM(void);
-
-	/*! 
-	 * \brief Compute the upwind flux between two nodes i and j.
-	 * \param[out] val_residual - Pointer to the total residual.
-	 * \param[out] val_Jacobian_i - Jacobian of the numerical method at node i (implicit computation).
-	 * \param[out] val_Jacobian_j - Jacobian of the numerical method at node j (implicit computation).
-	 * \param[in] config - Definition of the particular problem.
-	 */
-	void SetResidual (double *val_residual, double **val_Jacobian_i, double **val_Jacobian_j, CConfig *config);
-};
-
-/*! 
  * \class CUpwLin_LevelSet
  * \brief Class for performing a linear upwind solver for the Level Set equations.
  * \ingroup ConvDiscr
@@ -2780,11 +2740,9 @@ public:
  */
 class CUpwSca_TransLM : public CNumerics {
 private:
-	double *Velocity_i, *Velocity_j;
+
 	bool implicit, rotating_frame, grid_movement;
-	double Density_i, Density_j,
-	q_ij,
-	a0, a1;
+	double  q_ij, a0, a1;
 	unsigned short iDim;
 
 public:

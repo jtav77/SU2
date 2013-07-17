@@ -2037,54 +2037,6 @@ void CUpwLin_AdjDiscLevelSet::SetResidual ()  {
 
 }
 
-CUpwLin_TransLM::CUpwLin_TransLM(unsigned short val_nDim, unsigned short val_nVar, CConfig *config) : CNumerics(val_nDim, val_nVar, config) {
-
-	implicit = (config->GetKind_TimeIntScheme_Turb() == EULER_IMPLICIT);
-	rotating_frame = config->GetRotating_Frame();
-	grid_movement  = config->GetGrid_Movement();
-	incompressible = config->GetIncompressible();
-
-	Gamma = config->GetGamma();
-	Gamma_Minus_One = Gamma - 1.0;
-
-	Velocity_i = new double [nDim];
-	Velocity_j = new double [nDim];
-
-}
-
-CUpwLin_TransLM::~CUpwLin_TransLM(void) {
-	delete [] Velocity_i;
-	delete [] Velocity_j;
-}
-
-void CUpwLin_TransLM::SetResidual (double *val_residual, double **val_Jacobian_i, double **val_Jacobian_j, CConfig *config) {
-
-
-	Density_i = U_i[0];
-	Density_j = U_j[0];
-
-	q_ij = 0;
-	for (iDim = 0; iDim < nDim; iDim++) {
-		Velocity_i[iDim] = U_i[iDim+1]/Density_i;
-		Velocity_j[iDim] = U_j[iDim+1]/Density_j;
-		q_ij += 0.5*(Velocity_i[iDim]+Velocity_j[iDim])*Normal[iDim];
-	}
-
-	a0 = 0.5*(q_ij+fabs(q_ij));
-	a1 = 0.5*(q_ij-fabs(q_ij));
-	val_residual[0] = a0*TransVar_i[0]+a1*TransVar_j[0];
-	val_residual[1] = a0*TransVar_i[1]+a1*TransVar_j[1];
-//	cout << "Velicity x: " << Velocity_i[0] << ", " << Velocity_j[0] << endl;
-//	cout << "Velicity y: " << Velocity_i[1] << ", " << Velocity_j[1] << endl;
-//	cout << "val_resid: " << val_residual[0] << ", " << val_residual[1] << endl;
-
-
-	if (implicit) {
-		val_Jacobian_i[0][0] = a0;
-		val_Jacobian_i[1][1] = a0;
-	}
-}
-
 CUpwLin_AdjTurb::CUpwLin_AdjTurb(unsigned short val_nDim, unsigned short val_nVar, CConfig *config) : CNumerics(val_nDim, val_nVar, config) {
 
 	Gamma = config->GetGamma();
@@ -2318,29 +2270,22 @@ CUpwSca_TransLM::CUpwSca_TransLM(unsigned short val_nDim, unsigned short val_nVa
 	rotating_frame = config->GetRotating_Frame();
 	grid_movement = config->GetGrid_Movement();
 
-	Gamma = config->GetGamma();
-	Gamma_Minus_One = Gamma - 1.0;
-
-	Velocity_i = new double [nDim];
-	Velocity_j = new double [nDim];
 }
 
-CUpwSca_TransLM::~CUpwSca_TransLM(void) {
-	delete [] Velocity_i;
-	delete [] Velocity_j;
-}
+CUpwSca_TransLM::~CUpwSca_TransLM(void) { }
 
 void CUpwSca_TransLM::SetResidual(double *val_residual, double **val_Jacobian_i, double **val_Jacobian_j, CConfig *config) {
 
-	q_ij = 0;
+	q_ij = 0.0;
 	for (iDim = 0; iDim < nDim; iDim++) {
 		q_ij += 0.5*(U_i[iDim]+U_j[iDim])*Normal[iDim];
 	}
 
 	a0 = 0.5*(q_ij+fabs(q_ij));
 	a1 = 0.5*(q_ij-fabs(q_ij));
-	val_residual[0] = a0*TransVar_i[0]+a1*TransVar_j[0];
-	val_residual[1] = a0*TransVar_i[1]+a1*TransVar_j[1];
+  
+	val_residual[0] = a0*TransVar_i[0] + a1*TransVar_j[0];
+	val_residual[1] = a0*TransVar_i[1] + a1*TransVar_j[1];
 
 	if (implicit) {
 		val_Jacobian_i[0][0] = a0;
@@ -2348,11 +2293,11 @@ void CUpwSca_TransLM::SetResidual(double *val_residual, double **val_Jacobian_i,
 		val_Jacobian_i[1][1] = a0;
 		val_Jacobian_j[1][1] = a1;
 
-    /* --- Zero out off-diagonal terms just in case ---*/
-		val_Jacobian_i[0][1] = 0;
-		val_Jacobian_j[0][1] = 0;
-    val_Jacobian_i[1][0] = 0;
-    val_Jacobian_j[1][0] = 0;
+    /* --- Zero out off-diagonal terms ---*/
+		val_Jacobian_i[0][1] = 0.0;
+		val_Jacobian_j[0][1] = 0.0;
+    val_Jacobian_i[1][0] = 0.0;
+    val_Jacobian_j[1][0] = 0.0;
 	}
 
 }
