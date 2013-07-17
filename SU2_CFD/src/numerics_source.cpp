@@ -287,7 +287,6 @@ void CSourcePieceWise_TransLM::SetResidual_TransLM(double *val_residual, double 
 	if (dist_i > 0.0) {   // Only operate away from wall
     
 		/*-- Intermittency eq.: --*/
-    
     rey_tc = (4.45*pow(tu,3) - 5.7*pow(tu,2) + 1.37*tu + 0.585)*TransVar_i[1];
     flen   = 0.171*pow(tu,2) - 0.0083*tu + 0.0306;
     
@@ -312,16 +311,16 @@ void CSourcePieceWise_TransLM::SetResidual_TransLM(double *val_residual, double 
     
 		/*-- REtheta eq: --*/
 		if (nDim == 2) Velocity_Mag = sqrt(U_i[1]*U_i[1]+U_i[2]*U_i[2])/U_i[0];
-		else if (nDim==3) Velocity_Mag = sqrt(U_i[1]*U_i[1]+U_i[2]*U_i[2]+U_i[3]*U_i[3])/U_i[0];
+		else if (nDim == 3) Velocity_Mag = sqrt(U_i[1]*U_i[1]+U_i[2]*U_i[2]+U_i[3]*U_i[3])/U_i[0];
     
 		/*-- Gradient of velocity magnitude ---*/
 		dU_dx = 0.5*Velocity_Mag*( 2*U_i[1]/U_i[0]*PrimVar_Grad_i[1][0]
                               +2*U_i[2]/U_i[0]*PrimVar_Grad_i[2][0]);
-		if (nDim == 3)
-      dU_dx += 0.5*Velocity_Mag*( 2*U_i[3]/U_i[0]*PrimVar_Grad_i[3][0]);
+
 		dU_dy = 0.5*Velocity_Mag*( 2*U_i[1]/U_i[0]*PrimVar_Grad_i[1][1]
                               +2*U_i[2]/U_i[0]*PrimVar_Grad_i[2][1]);
 		if (nDim == 3) {
+      dU_dx += 0.5*Velocity_Mag*( 2*U_i[3]/U_i[0]*PrimVar_Grad_i[3][0]);
       dU_dy += 0.5*Velocity_Mag*( 2*U_i[3]/U_i[0]*PrimVar_Grad_i[3][1]);
       dU_dz = 0.5*Velocity_Mag*( 2*U_i[1]/U_i[0]*PrimVar_Grad_i[1][2]
                                 +2*U_i[2]/U_i[0]*PrimVar_Grad_i[2][2]
@@ -336,11 +335,9 @@ void CSourcePieceWise_TransLM::SetResidual_TransLM(double *val_residual, double 
 		/*-- Fixed-point iterations to solve REth correlation --*/
 		f_lambda = 1.;
 		for (int iter=0; iter<10; iter++) {
-			if (tu <= 1.3) {
-				re_theta = f_lambda * (1173.51-589.428*tu+0.2196/(tu*tu));
-			} else {
-				re_theta = 331.5 * f_lambda*pow(tu-0.5658,-0.671);
-			}
+      
+			if (tu <= 1.3) re_theta = f_lambda * (1173.51-589.428*tu+0.2196/(tu*tu));
+			else re_theta = 331.5 * f_lambda*pow(tu-0.5658,-0.671);
 			re_theta = max(re_theta, re_theta_lim);
       
 			theta  = re_theta * Laminar_Viscosity_i / (U_i[0]*Velocity_Mag);
@@ -348,12 +345,9 @@ void CSourcePieceWise_TransLM::SetResidual_TransLM(double *val_residual, double 
 			lambda = U_i[0]*theta*theta*du_ds / Laminar_Viscosity_i;
 			lambda = min(max(-0.1,lambda),0.1);
       
-			if (lambda<=0.0) {
-				f_lambda = 1. - (-12.986*lambda - 123.66*lambda*lambda -
-                         405.689*lambda*lambda*lambda)*exp(-pow(2./3*tu,1.5));
-			} else {
-				f_lambda = 1. + 0.275*(1.-exp(-35.*lambda))*exp(-2.*tu);
-			}
+			if (lambda <= 0.0) f_lambda = 1. - (-12.986*lambda - 123.66*lambda*lambda - 405.689*lambda*lambda*lambda)*exp(-pow(2./3*tu,1.5));
+      else f_lambda = 1. + 0.275*(1.-exp(-35.*lambda))*exp(-2.*tu);
+
 		}
     
 		/*-- Calculate blending function f_theta --*/
@@ -399,8 +393,8 @@ void CSourcePieceWise_TransLM::SetResidual_TransLM(double *val_residual, double 
     
 		/*-- Calculate term for separation correction --*/
 		f_reattach = exp(-pow(0.05*r_t,4));
-		gamma_sep = s1*max(0.,re_v/(3.235*rey_tc)-1.)*f_reattach;
-		gamma_sep = min(gamma_sep,2.0)*f_theta;
+		gamma_sep = s1*max(0.0, re_v/(3.235*rey_tc)-1.)*f_reattach;
+		gamma_sep = min(gamma_sep, 2.0)*f_theta;
     
 		/*--- Implicit part ---*/
     TransVar_id[0] = 1.0; TransVar_id[1] = 0.0;

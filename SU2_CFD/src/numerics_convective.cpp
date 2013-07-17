@@ -2278,7 +2278,7 @@ void CUpwSca_TransLM::SetResidual(double *val_residual, double **val_Jacobian_i,
 
 	q_ij = 0.0;
 	for (iDim = 0; iDim < nDim; iDim++) {
-		q_ij += 0.5*(U_i[iDim]+U_j[iDim])*Normal[iDim];
+		q_ij += 0.5*(U_i[iDim+1]+U_j[iDim+1])*Normal[iDim];
 	}
 
 	a0 = 0.5*(q_ij+fabs(q_ij));
@@ -2293,7 +2293,7 @@ void CUpwSca_TransLM::SetResidual(double *val_residual, double **val_Jacobian_i,
 		val_Jacobian_i[1][1] = a0;
 		val_Jacobian_j[1][1] = a1;
 
-    /* --- Zero out off-diagonal terms ---*/
+    /*--- Zero out off-diagonal terms ---*/
 		val_Jacobian_i[0][1] = 0.0;
 		val_Jacobian_j[0][1] = 0.0;
     val_Jacobian_i[1][0] = 0.0;
