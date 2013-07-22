@@ -3848,6 +3848,43 @@ void CEulerSolution::BC_Far_Field(CGeometry *geometry, CSolution **solution_cont
 				V_infty[nDim+1] = GetPressure_Inf();
 				V_infty[nDim+2] = GetDensity_Inf();
                 
+                /*---------- Implement the Gust in here ----------*/
+                
+                
+                double x = geometry->node[iPoint]->GetCoord()[0]; // x-location of the node on the farfield boundary
+                // Check if point belongs to the inflow (x<0)
+                if (x < 0.0) {
+                    
+                    /*--- Variables for the Gust ---*/
+                    double N = config->GetnExtIter(); // number of unsteady time steps
+                    double dt = config->GetDelta_UnstTime();
+                    double T = N*dt; // Total simulation time
+                    double Tbegin = 0.1*T; //controls when the gust begins
+                    unsigned long ExtIter = config->GetExtIter();
+                    double t = (ExtIter+1)*dt; // physical time // maybe not +1
+                    
+                    if (t > Tbegin) {
+                        // Adjust the free stream values by adjusting the Mach number
+                        double gust_factor = 1.2;
+                        double Mach = gust_factor*config->GetMach_FreeStreamND();
+                        double alpha = config->GetAoA()*PI_NUMBER/180.0;
+                        double u = cos(alpha)*Mach*sqrt(Gamma*Gas_Constant*config->GetTemperature_FreeStream());
+                        double v = sin(alpha)*Mach*sqrt(Gamma*Gas_Constant*config->GetTemperature_FreeStream());
+                        double mag_v = sqrt(u*u + v*v);
+                        double E = GetPressure_Inf()/((Gamma_Minus_One)*GetDensity_Inf()) + 0.5*mag_v*mag_v;
+                        
+                        // Set the conservative variables.
+                        U_infty[1] = GetDensity_Inf()*u;
+                        U_infty[2] = GetDensity_Inf()*v;
+                        U_infty[nDim+1] = GetDensity_Inf()*E;
+                        
+                    }
+                    
+                    
+                }
+                
+                /*-------------------------------------------------*/
+            
 			}
             
 			/*--- Set various quantities in the solver class ---*/
