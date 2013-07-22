@@ -52,6 +52,7 @@ ___bin_SU2_CFD_SOURCES = ../include/definition_structure.hpp \
 		../src/solution_direct_levelset.cpp \
 		../src/solution_direct_mean.cpp \
 		../src/solution_direct_plasma.cpp \
+		../src/solution_direct_radiation.cpp \
 		../src/solution_direct_transition.cpp \
 		../src/solution_direct_turbulent.cpp \
 		../src/solution_direct_turbulent_ad.cpp \

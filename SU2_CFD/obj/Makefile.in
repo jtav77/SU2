@@ -83,6 +83,7 @@ am____bin_SU2_CFD_OBJECTS =  \
 	___bin_SU2_CFD-solution_direct_levelset.$(OBJEXT) \
 	___bin_SU2_CFD-solution_direct_mean.$(OBJEXT) \
 	___bin_SU2_CFD-solution_direct_plasma.$(OBJEXT) \
+	___bin_SU2_CFD-solution_direct_radiation.$(OBJEXT) \
 	___bin_SU2_CFD-solution_direct_transition.$(OBJEXT) \
 	___bin_SU2_CFD-solution_direct_turbulent.$(OBJEXT) \
 	___bin_SU2_CFD-solution_direct_turbulent_ad.$(OBJEXT) \
@@ -259,6 +260,7 @@ ___bin_SU2_CFD_SOURCES = ../include/definition_structure.hpp \
 		../src/solution_direct_levelset.cpp \
 		../src/solution_direct_mean.cpp \
 		../src/solution_direct_plasma.cpp \
+		../src/solution_direct_radiation.cpp \
 		../src/solution_direct_transition.cpp \
 		../src/solution_direct_turbulent.cpp \
 		../src/solution_direct_turbulent_ad.cpp \
@@ -380,6 +382,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/___bin_SU2_CFD-solution_direct_levelset.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/___bin_SU2_CFD-solution_direct_mean.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/___bin_SU2_CFD-solution_direct_plasma.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/___bin_SU2_CFD-solution_direct_radiation.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/___bin_SU2_CFD-solution_direct_transition.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/___bin_SU2_CFD-solution_direct_turbulent.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/___bin_SU2_CFD-solution_direct_turbulent_ad.Po@am__quote@
@@ -757,6 +760,20 @@ ___bin_SU2_CFD-solution_direct_plasma.obj: ../src/solution_direct_plasma.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../src/solution_direct_plasma.cpp' object='___bin_SU2_CFD-solution_direct_plasma.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(___bin_SU2_CFD_CXXFLAGS) $(CXXFLAGS) -c -o ___bin_SU2_CFD-solution_direct_plasma.obj `if test -f '../src/solution_direct_plasma.cpp'; then $(CYGPATH_W) '../src/solution_direct_plasma.cpp'; else $(CYGPATH_W) '$(srcdir)/../src/solution_direct_plasma.cpp'; fi`
+
+___bin_SU2_CFD-solution_direct_radiation.o: ../src/solution_direct_radiation.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(___bin_SU2_CFD_CXXFLAGS) $(CXXFLAGS) -MT ___bin_SU2_CFD-solution_direct_radiation.o -MD -MP -MF "$(DEPDIR)/___bin_SU2_CFD-solution_direct_radiation.Tpo" -c -o ___bin_SU2_CFD-solution_direct_radiation.o `test -f '../src/solution_direct_radiation.cpp' || echo '$(srcdir)/'`../src/solution_direct_radiation.cpp; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/___bin_SU2_CFD-solution_direct_radiation.Tpo" "$(DEPDIR)/___bin_SU2_CFD-solution_direct_radiation.Po"; else rm -f "$(DEPDIR)/___bin_SU2_CFD-solution_direct_radiation.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../src/solution_direct_radiation.cpp' object='___bin_SU2_CFD-solution_direct_radiation.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(___bin_SU2_CFD_CXXFLAGS) $(CXXFLAGS) -c -o ___bin_SU2_CFD-solution_direct_radiation.o `test -f '../src/solution_direct_radiation.cpp' || echo '$(srcdir)/'`../src/solution_direct_radiation.cpp
+
+___bin_SU2_CFD-solution_direct_radiation.obj: ../src/solution_direct_radiation.cpp
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(___bin_SU2_CFD_CXXFLAGS) $(CXXFLAGS) -MT ___bin_SU2_CFD-solution_direct_radiation.obj -MD -MP -MF "$(DEPDIR)/___bin_SU2_CFD-solution_direct_radiation.Tpo" -c -o ___bin_SU2_CFD-solution_direct_radiation.obj `if test -f '../src/solution_direct_radiation.cpp'; then $(CYGPATH_W) '../src/solution_direct_radiation.cpp'; else $(CYGPATH_W) '$(srcdir)/../src/solution_direct_radiation.cpp'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/___bin_SU2_CFD-solution_direct_radiation.Tpo" "$(DEPDIR)/___bin_SU2_CFD-solution_direct_radiation.Po"; else rm -f "$(DEPDIR)/___bin_SU2_CFD-solution_direct_radiation.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../src/solution_direct_radiation.cpp' object='___bin_SU2_CFD-solution_direct_radiation.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(___bin_SU2_CFD_CXXFLAGS) $(CXXFLAGS) -c -o ___bin_SU2_CFD-solution_direct_radiation.obj `if test -f '../src/solution_direct_radiation.cpp'; then $(CYGPATH_W) '../src/solution_direct_radiation.cpp'; else $(CYGPATH_W) '$(srcdir)/../src/solution_direct_radiation.cpp'; fi`
 
 ___bin_SU2_CFD-solution_direct_transition.o: ../src/solution_direct_transition.cpp
 @am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(___bin_SU2_CFD_CXXFLAGS) $(CXXFLAGS) -MT ___bin_SU2_CFD-solution_direct_transition.o -MD -MP -MF "$(DEPDIR)/___bin_SU2_CFD-solution_direct_transition.Tpo" -c -o ___bin_SU2_CFD-solution_direct_transition.o `test -f '../src/solution_direct_transition.cpp' || echo '$(srcdir)/'`../src/solution_direct_transition.cpp; \
