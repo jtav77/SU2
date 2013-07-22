@@ -1311,6 +1311,7 @@ void CTurbSASolution::Source_Residual(CGeometry *geometry, CSolution **solution_
 
 		if (transition) {
 			solver->SetIntermittency(solution_container[TRANS_SOL]->node[iPoint]->GetIntermittency() );
+      solver->SetGammaEff(solution_container[TRANS_SOL]->node[iPoint]->GetGammaEff() );
 		}
 
 		/*--- Turbulent variables w/o reconstruction, and its gradient ---*/

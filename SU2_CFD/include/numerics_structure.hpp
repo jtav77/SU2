@@ -1460,6 +1460,7 @@ public:
 	 * \brief Set intermittency for numerics (used in SA with LM transition model)
 	 */
 	virtual void SetIntermittency(double intermittency_in);
+	virtual void SetGammaEff(double gamma_eff_in);
 
 	/*!
 	 * \brief Get the kappapsi_Volume value for Hybrid coupling.
@@ -5224,6 +5225,8 @@ public:
 	 * \param[in] intermittency_in - Value of the intermittency.
 	 */
   void SetIntermittency(double intermittency_in); 
+
+  void SetGammaEff(double gamma_eff_in);
 };
 
 /*! 

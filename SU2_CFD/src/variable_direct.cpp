@@ -647,6 +647,8 @@ CTransLMVariable::CTransLMVariable(double val_nu_tilde, double val_intermittency
 	Solution[0] = val_intermittency; Solution_Old[0] = val_intermittency;
 	Solution[1] = val_REth;          Solution_Old[1] = val_REth;
 
+  gamma_eff = Solution[0];
+
 }
 
 CTransLMVariable::~CTransLMVariable(void) { }
@@ -654,7 +656,13 @@ CTransLMVariable::~CTransLMVariable(void) { }
 void CTransLMVariable::SetGammaEff() {
 
 	/* -- Correction for separation-induced transition -- */
-	Solution[0] = max(Solution[0],gamma_sep);
+  gamma_eff   = max(Solution[0],gamma_sep);
+
+}
+
+double CTransLMVariable::GetGammaEff() {
+
+  return gamma_eff ;
 
 }
 

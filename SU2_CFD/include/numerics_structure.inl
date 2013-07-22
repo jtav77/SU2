@@ -228,6 +228,8 @@ inline void CNumerics::SetEddyViscosity(double val_eddy_viscosity_i, double val_
 
 inline void CNumerics::SetIntermittency(double intermittency_in) { }
 
+inline void CNumerics::SetGammaEff(double gamma_eff_in) {}
+
 inline void CNumerics::SetTurbKineticEnergy(double val_turb_ke_i, double val_turb_ke_j) {
 	turb_ke_i = val_turb_ke_i;
 	turb_ke_j = val_turb_ke_j;
@@ -520,6 +522,8 @@ inline void CSourcePieceWise_TurbSST::SetCrossDiff(double val_CDkw_i, double val
 }			
 
 inline void CSourcePieceWise_TurbSA::SetIntermittency(double intermittency_in) { intermittency = intermittency_in; }
+
+inline void CSourcePieceWise_TurbSA::SetGammaEff(double gamma_eff_in) { gamma_eff = gamma_eff_in; }
 
 inline void CSourcePieceWise_Plasma::SetElecField(double *val_Efield) { ElectricField = val_Efield; }
 

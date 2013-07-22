@@ -191,6 +191,8 @@ inline double CVariable::GetEddyViscosity(void) { return 0; }
 
 inline void CVariable::SetGammaEff(void) { }
 
+inline double CVariable::GetGammaEff(void) { }
+
 inline void CVariable::SetGammaSep(double gamma_sep) { }
 
 inline double CVariable::GetIntermittency(void) { return 0; }

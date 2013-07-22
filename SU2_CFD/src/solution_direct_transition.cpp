@@ -199,8 +199,9 @@ void CTransLMSolution::Preprocessing(CGeometry *geometry, CSolution **solution_c
 void CTransLMSolution::Postprocessing(CGeometry *geometry, CSolution **solution_container, CConfig *config, unsigned short iMesh) {
 
   /*--- Correction for separation-induced transition, Replace intermittency with gamma_eff ---*/
-	for (unsigned int iPoint = 0; iPoint < geometry->GetnPoint(); iPoint ++)
-    node[iPoint]->SetGammaEff();
+  // Moved this to Source_Residual()
+	//for (unsigned int iPoint = 0; iPoint < geometry->GetnPoint(); iPoint ++)
+  //  node[iPoint]->SetGammaEff();
 }
 
 void CTransLMSolution::ImplicitEuler_Iteration(CGeometry *geometry, CSolution **solution_container, CConfig *config) {
@@ -381,13 +382,13 @@ void CTransLMSolution::Viscous_Residual(CGeometry *geometry, CSolution **solutio
     solver->SetResidual(Residual, Jacobian_i, Jacobian_j, config);
     
     /*--- Add and subtract residual, and update Jacobians ---*/
-//    SubtractResidual(iPoint, Residual);
-//    AddResidual(jPoint, Residual);
-//    
-//    Jacobian.SubtractBlock(iPoint, iPoint, Jacobian_i);
-//    Jacobian.SubtractBlock(iPoint, jPoint, Jacobian_j);
-//    Jacobian.AddBlock(jPoint, iPoint, Jacobian_i);
-//    Jacobian.AddBlock(jPoint, jPoint, Jacobian_j);
+    SubtractResidual(iPoint, Residual);
+    AddResidual(jPoint, Residual);
+    
+    Jacobian.SubtractBlock(iPoint, iPoint, Jacobian_i);
+    Jacobian.SubtractBlock(iPoint, jPoint, Jacobian_j);
+    Jacobian.AddBlock(jPoint, iPoint, Jacobian_i);
+    Jacobian.AddBlock(jPoint, jPoint, Jacobian_j);
     
   }
   
@@ -424,6 +425,7 @@ void CTransLMSolution::Source_Residual(CGeometry *geometry, CSolution **solution
 		
     /*-- Store gamma_sep in variable class --*/
     node[iPoint]->SetGammaSep(gamma_sep);
+    node[iPoint]->SetGammaEff();
 
 		/*--- Subtract residual and the jacobian ---*/
 		SubtractResidual(iPoint, Residual);

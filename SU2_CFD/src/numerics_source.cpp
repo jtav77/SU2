@@ -32,8 +32,8 @@ CSourcePieceWise_TurbSA::CSourcePieceWise_TurbSA(unsigned short val_nDim, unsign
 		CConfig *config) : CNumerics(val_nDim, val_nVar, config) {
 
 	incompressible = config->GetIncompressible();
-	//transition     = (config->GetKind_Trans_Model() == LM);
-  transition = false; // Debugging, -AA
+	transition     = (config->GetKind_Trans_Model() == LM);
+  //transition = false; // Debugging, -AA
   rotating_frame = config->GetRotating_Frame();
   
 	Gamma = config->GetGamma();
@@ -137,7 +137,7 @@ void CSourcePieceWise_TurbSA::SetResidual(double *val_residual, double **val_Jac
     
     /*--- Production term ---*/
 		if (!transition) val_residual[0] += cb1*Shat*TurbVar_i[0]*Volume;
-    else val_residual[0] += cb1*Shat*TurbVar_i[0]*Volume*intermittency;
+    else val_residual[0] += cb1*Shat*TurbVar_i[0]*Volume*gamma_eff;
     
 		/*--- Destruction term ---*/
 		r = min(TurbVar_i[0]*inv_Shat*inv_k2_d2,10.0);

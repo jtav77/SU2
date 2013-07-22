@@ -916,6 +916,12 @@ public:
 
 	/*!
 	 * \brief A virtual member.
+	 * \return Returns gamma_eff (Langtry transition model)
+	 */
+  virtual double GetGammaEff(void);
+
+	/*!
+	 * \brief A virtual member.
 	 * \return Returns intermittency
 	 */
 	virtual double GetIntermittency();
@@ -2291,7 +2297,7 @@ public:
 
 class CTransLMVariable : public CTurbVariable {
 protected:
-  double gamma_sep;
+  double gamma_sep, gamma_eff;
   
 public:
   
@@ -2323,19 +2329,17 @@ public:
   double GetIntermittency(void);
   
   /*!
-	 * \brief ________________.
-	 * \param[in] val_var - Index of the variable.
-	 * \param[in] val_solution - Value of the time spectral source term. for the index <i>val_var</i>.
+	 * \brief routine to set gamma_sep (Equation 17, Langtry 2009)
+	 * \param[in] gamma_sep_in - Value of gamma_sep computed in source term
 	 */
   void SetGammaSep(double gamma_sep_in);
   
   /*!
-	 * \brief ________________.
-	 * \param[in] val_var - Index of the variable.
-	 * \param[in] val_solution - Value of the time spectral source term. for the index <i>val_var</i>.
+	 * \brief routine to set gamma_eff (Equation 19, Langtry 2009)
 	 */
   void SetGammaEff(void);
   
+  double GetGammaEff(void);
 };
 
 /*! 
