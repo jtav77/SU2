@@ -1363,13 +1363,10 @@ void CVolumetricMovement::SpringMethod(CGeometry *geometry, CConfig *config, boo
     CSysVector sol_vec(nPoint, nPointDomain, nDim, usol);
     
     CMatrixVectorProduct* mat_vec = new CSparseMatrixVectorProduct(StiffMatrix, geometry, config);
-
-    CPreconditioner* precond = NULL;
-    StiffMatrix.BuildJacobiPreconditioner();
-    precond = new CJacobiPreconditioner(StiffMatrix, geometry, config);
+    CPreconditioner* precond = new CLUSGSPreconditioner(StiffMatrix, geometry, config);
     
     CSysSolve system;
-    IterLinSol = system.ConjugateGradient(rhs_vec, sol_vec, *mat_vec, *precond, NumError, 300, true);
+    IterLinSol = system.ConjugateGradient(rhs_vec, sol_vec, *mat_vec, *precond, NumError, 5000, true);
     
     /*--- Copy the solution to the array ---*/
     sol_vec.CopyToArray(usol);
@@ -1391,95 +1388,96 @@ void CVolumetricMovement::SpringMethod(CGeometry *geometry, CConfig *config, boo
 }
 
 void CVolumetricMovement::FEAMethod(CGeometry *geometry, CConfig *config, bool UpdateGeo) {
-    unsigned short iDim;
+  unsigned short iDim;
 	unsigned long iPoint, total_index, IterLinSol, iFEA;
-    double MinLength, NumError;
-    
-    unsigned long nPoint = geometry->GetnPoint();
-    unsigned long nPointDomain = geometry->GetnPointDomain();
-
-    /*--- Initialize the global stiffness matrix structure for the mesh ---*/
+  double MinLength, NumError;
+  
+  unsigned long nPoint = geometry->GetnPoint();
+  unsigned long nPointDomain = geometry->GetnPointDomain();
+  
+  /*--- Initialize the global stiffness matrix structure for the mesh ---*/
 	Initialize_StiffMatrix_Structure(nDim, geometry);
-
+  
+  
+  /*--- Loop over the total number of FEA iterations. The surface
+   deformation can be divided into increments, as the linear elasticity
+   equations hold only for small deformation. ---*/
+  for (iFEA = 0; iFEA < config->GetFEA_Iter(); iFEA++) {
     
-    /*--- Loop over the total number of FEA iterations. The surface
-     deformation can be divided into increments, as the linear elasticity
-     equations hold only for small deformation. ---*/
-    for (iFEA = 0; iFEA < config->GetFEA_Iter(); iFEA++) {
-        
-        StiffMatrix.SetValZero();
-        
-        /*--- Compute the stiffness matrix entries for all elements in the
-         mesh using a finite element method discretization of the linear
-         elasticity equations. Transfer element stiffnesses to point-to-point. ---*/
-        
-        MinLength = SetFEAMethodContributions_Elem(geometry);
-        
-        /*--- Print a warning if error tolerance is larger than min length ---*/
-        NumError = config->GetGridDef_Error();
-        if (NumError > MinLength) {
-            cout << "Warning: The error tol. is greater than the minimum edge length.\n" << endl;
-            cout << "NumError: " << NumError <<"." << "  MinLength: " << MinLength << "." << endl;
-        }
-        
-        /*--- Initialize the solution and r.h.s. vectors to zero ---*/
-        for (iPoint = 0; iPoint < geometry->GetnPoint(); iPoint++) {
-            for (iDim = 0; iDim < nDim; iDim++) {
-                total_index = iPoint*nDim + iDim;
-                rhs[total_index]  = 0.0;
-                usol[total_index] = 0.0;
-            }
-        }
-        
-        /*--- Set the boundary displacements (as prescribed by the design variable
-         perturbations controlling the surface shape) as a Dirichlet BC. ---*/
-        SetBoundaryDisplacements(geometry, config);
-        
-        /*--- Fix the location of any points in the domain, if requested. ---*/
-        if (config->GetHold_GridFixed())
-            SetDomainDisplacements(geometry, config);
-        
-        /*--- Solve the linear system (Krylov subspace methods) ---*/
-        CSysVector rhs_vec(nPoint, nPointDomain, nDim, rhs);
-        CSysVector sol_vec(nPoint, nPointDomain, nDim, usol);
-        
-        CMatrixVectorProduct* mat_vec = new CSparseMatrixVectorProduct(StiffMatrix, geometry, config);
-
-        CPreconditioner* precond = NULL;
-        StiffMatrix.BuildJacobiPreconditioner();
-        precond = new CJacobiPreconditioner(StiffMatrix, geometry, config);
-        
-        CSysSolve system;
- //       IterLinSol = system.BCGSTAB(rhs_vec, sol_vec, *mat_vec, *precond, NumError, 300, true);
-        IterLinSol = system.GMRES(rhs_vec, sol_vec, *mat_vec, *precond, NumError, 300, true);
-        
-        /*--- Copy the solution to the array ---*/
-        sol_vec.CopyToArray(usol);
-        
-        /*--- Deallocate memory needed by the Krylov linear solver ---*/
-        delete mat_vec;
-        delete precond;
-
-        /*--- Update the grid coordinates for all nodes using the solution
-         of the linear system (usol contains the x, y, z displacements). ---*/
-        UpdateGridCoord(geometry, config);
-        
-        if (UpdateGeo) {
-            geometry->SetCG();
-            geometry->SetControlVolume(config, UPDATE);
-            geometry->SetBoundControlVolume(config, UPDATE);
-        }
-        
+    StiffMatrix.SetValZero();
+    
+    /*--- Compute the stiffness matrix entries for all elements in the
+     mesh using a finite element method discretization of the linear
+     elasticity equations. Transfer element stiffnesses to point-to-point. ---*/
+    
+    MinLength = SetFEAMethodContributions_Elem(geometry);
+    
+    /*--- Print a warning if error tolerance is larger than min length ---*/
+    NumError = config->GetGridDef_Error();
+    if (NumError > MinLength) {
+      cout << "Warning: The error tol. is greater than the minimum edge length.\n" << endl;
+      cout << "NumError: " << NumError <<"." << "  MinLength: " << MinLength << "." << endl;
     }
     
-    /*--- Perform a grid quality check after deformation. ---*/
+    /*--- Initialize the solution and r.h.s. vectors to zero ---*/
+    for (iPoint = 0; iPoint < geometry->GetnPoint(); iPoint++) {
+      for (iDim = 0; iDim < nDim; iDim++) {
+        total_index = iPoint*nDim + iDim;
+        rhs[total_index]  = 0.0;
+        usol[total_index] = 0.0;
+      }
+    }
     
-    CheckFEA_Grid(geometry);
+    /*--- Set the boundary displacements (as prescribed by the design variable
+     perturbations controlling the surface shape) as a Dirichlet BC. ---*/
+    SetBoundaryDisplacements(geometry, config);
     
-    /*--- Deallocate memory for the global stiffness matrix and exit. ---*/
+    /*--- Fix the location of any points in the domain, if requested. ---*/
+    if (config->GetHold_GridFixed())
+      SetDomainDisplacements(geometry, config);
     
+    /*--- Solve the linear system (Krylov subspace methods) ---*/
+    CSysVector rhs_vec(nPoint, nPointDomain, nDim, rhs);
+    CSysVector sol_vec(nPoint, nPointDomain, nDim, usol);
+    
+    CMatrixVectorProduct* mat_vec = new CSparseMatrixVectorProduct(StiffMatrix, geometry, config);
+    
+    CPreconditioner* precond = NULL;
+//    StiffMatrix.BuildJacobiPreconditioner();
+//    precond = new CJacobiPreconditioner(StiffMatrix, geometry, config);
+    precond = new CLUSGSPreconditioner(StiffMatrix, geometry, config);
+    
+    CSysSolve system;
+//    IterLinSol = system.BCGSTAB(rhs_vec, sol_vec, *mat_vec, *precond, NumError, 300, true);
+    IterLinSol = system.GMRES(rhs_vec, sol_vec, *mat_vec, *precond, NumError, 300, true);
+    
+    /*--- Copy the solution to the array ---*/
+    sol_vec.CopyToArray(usol);
+    
+    /*--- Deallocate memory needed by the Krylov linear solver ---*/
+    delete mat_vec;
+    delete precond;
+    
+    /*--- Update the grid coordinates for all nodes using the solution
+     of the linear system (usol contains the x, y, z displacements). ---*/
+    UpdateGridCoord(geometry, config);
+    
+    if (UpdateGeo) {
+      geometry->SetCG();
+      geometry->SetControlVolume(config, UPDATE);
+      geometry->SetBoundControlVolume(config, UPDATE);
+    }
+    
+  }
+  
+  /*--- Perform a grid quality check after deformation. ---*/
+  
+  CheckFEA_Grid(geometry);
+  
+  /*--- Deallocate memory for the global stiffness matrix and exit. ---*/
+  
 	Deallocate_StiffMatrix_Structure(geometry);
-    
+  
 }
 
 void CVolumetricMovement::SetRigidRotation(CGeometry *geometry, CConfig *config,
@@ -4443,47 +4441,6 @@ void CFreeFormChunk::SetSupportCPChange(CFreeFormChunk *chunk) {
 			}
 }
 
-void CFreeFormChunk::SetParaView (char chunk_filename[200], bool new_file) {
-	ofstream chunk_file;
-	unsigned short iCornerPoints, iDim, iControlPoints, iDegree, jDegree, kDegree;
-		
-	if (new_file) chunk_file.open(chunk_filename, ios::out);
-	else chunk_file.open(chunk_filename, ios::out | ios::app);
-	
-	chunk_file << "# vtk DataFile Version 2.0" << endl;
-	chunk_file << "Visualization of the FFD box" << endl;
-	chunk_file << "ASCII" << endl;
-	chunk_file << "DATASET UNSTRUCTURED_GRID" << endl;
-	chunk_file << "POINTS " << nCornerPoints + nControlPoints << " float" << endl;
-	
-	chunk_file.precision(15);
-	
-	for(iCornerPoints = 0; iCornerPoints < nCornerPoints; iCornerPoints++) {
-		for(iDim = 0; iDim < nDim; iDim++)
-			chunk_file << scientific << Coord_Corner_Points[iCornerPoints][iDim] << "\t";
-		chunk_file << "\n";
-	}
-	for (iDegree = 0; iDegree <= lDegree; iDegree++)
-		for (jDegree = 0; jDegree <= mDegree; jDegree++)
-			for (kDegree = 0; kDegree <= nDegree; kDegree++) {
-				for(iDim = 0; iDim < nDim; iDim++)
-					chunk_file << scientific << Coord_Control_Points[iDegree][jDegree][kDegree][iDim] << "\t";
-				chunk_file << "\n";
-			}
-	
-	chunk_file << "CELLS " << 1 + nControlPoints << "\t" << (8+1) + (1+1) * nControlPoints << endl;
-	chunk_file << "8 0 1 2 3 4 5 6 7" << endl;
-	for (iControlPoints = 0; iControlPoints < nControlPoints; iControlPoints++)
-		chunk_file << "1 " << iControlPoints + 8 << endl;
-	
-	chunk_file << "CELL_TYPES " << 1 + nControlPoints<< endl;
-	chunk_file << "12" << endl;
-	for (iControlPoints = 0; iControlPoints < nControlPoints; iControlPoints++)
-		chunk_file << "1" << endl;
-	
-	chunk_file.close();
-}
-
 void CFreeFormChunk::SetTecplot(char chunk_filename[200], bool new_file) {
 	ofstream chunk_file;
 	unsigned short iDim, iDegree, jDegree, kDegree;
@@ -4723,7 +4680,7 @@ double *CFreeFormChunk::GetParametricCoord_Iterative(double *xyz, double *guess,
 			param_coord[iDim] += Indep_Term[iDim];
 		
 		/*--- If the gradient is small, we have converged ---*/
-		if ((abs(Indep_Term[0]) < tol) && (abs(Indep_Term[1]) < tol) && (abs(Indep_Term[2]) < tol))	break;
+		if ((fabs(Indep_Term[0]) < tol) && (fabs(Indep_Term[1]) < tol) && (fabs(Indep_Term[2]) < tol))	break;
 		NormError = sqrt(Indep_Term[0]*Indep_Term[0] + Indep_Term[1]*Indep_Term[1] + Indep_Term[2]*Indep_Term[2]);
 		MinNormError = min(NormError, MinNormError);
 		
@@ -4745,7 +4702,7 @@ double *CFreeFormChunk::GetParametricCoord_Iterative(double *xyz, double *guess,
 	}
 	
 	/*--- There is no convergence of the point inversion algorithm ---*/
-	if ((abs(Indep_Term[0]) > tol) || (abs(Indep_Term[1]) > tol) || (abs(Indep_Term[2]) > tol)) 
+	if ((fabs(Indep_Term[0]) > tol) || (fabs(Indep_Term[1]) > tol) || (fabs(Indep_Term[2]) > tol))
 		cout << "No Convergence Detected After " << iter << " Iterations" << endl;
 	
 	for (iDim = 0; iDim < nDim; iDim++) 

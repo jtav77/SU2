@@ -57,6 +57,8 @@ inline string CConfig::GetPlaneTag(unsigned short index) { return PlaneTag[index
 
 inline double CConfig::GetEA_IntLimit(unsigned short index) { return EA_IntLimit[index]; }
 
+inline double CConfig::GetAdjointLimit(void) { return AdjointLimit; }
+
 inline double *CConfig::GetHold_GridFixed_Coord(void) { return Hold_GridFixed_Coord; }
 
 inline double CConfig::GetMaxDimension(void) { return MaxDimension; }
@@ -404,8 +406,6 @@ inline unsigned long CConfig::GetLinear_Solver_Iter(void) { return Linear_Solver
 
 inline double CConfig::GetLinear_Solver_Relax(void) { return Linear_Solver_Relax; }
 
-inline bool CConfig::GetLinear_Solver_Hist(void) { return Linear_Solver_Hist; }
-
 inline unsigned short CConfig::GetKind_AdjTurb_Linear_Solver(void) { return Kind_AdjTurb_Linear_Solver; }
 
 inline unsigned short CConfig::GetKind_AdjTurb_Linear_Prec(void) { return Kind_AdjTurb_Linear_Prec; }
@@ -627,8 +627,6 @@ inline unsigned short CConfig::GetKind_ObjFunc(void) {return Kind_ObjFunc; }
 inline unsigned short CConfig::GetKind_GeoObjFunc(void) {return Kind_GeoObjFunc; }
 
 inline unsigned short CConfig::GetKind_SensSmooth(void) {return Kind_SensSmooth; }
-
-inline unsigned short CConfig::GetKind_ObjFuncType(void) {return Kind_ObjFuncType; }
 
 inline unsigned short CConfig::GetContinuous_Eqns(void) {return Continuous_Eqns; }
 

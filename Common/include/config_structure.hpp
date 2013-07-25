@@ -57,6 +57,7 @@ private:
 	Omega_Mag;						/*!< \brief Angular velocity magnitude for rotational frame problem. */
 	double MinLogResidual; /*!< \brief Minimum value of the log residual. */
 	double* EA_IntLimit; /*!< \brief Integration limits of the Equivalent Area computation */
+  double AdjointLimit; /*!< \brief Adjoint variable limit */
 	double* Hold_GridFixed_Coord; /*!< \brief Coordinates of the box to hold fixed the nbumerical grid */
 	unsigned short ConvCriteria;	/*!< \brief Kind of convergence criteria. */
 	bool Adjoint,			/*!< \brief Flag to know if the code is solving an adjoint problem. */
@@ -106,7 +107,6 @@ private:
 	unsigned short Kind_ObjFunc;	/*!< \brief Kind of objective function. */
 	unsigned short Kind_GeoObjFunc;	/*!< \brief Kind of geometrical objective function. */
 	unsigned short Kind_SensSmooth;	/*!< \brief Kind of sensitivity smoothing technique. */
-	unsigned short Kind_ObjFuncType;	/*!< \brief Type of objective function. */
 	unsigned short Continuous_Eqns;	/*!< \brief Which equations to treat continuously (Hybrid adjoint) */
 	unsigned short Discrete_Eqns;	/*!< \brief Which equations to treat discretely (Hybrid adjoint). */
 	unsigned short *Design_Variable; /*!< \brief Kind of design variable. */
@@ -349,7 +349,6 @@ private:
 	double Linear_Solver_Relax;		/*!< \brief Relaxation coefficient of the linear solver. */
 	double AdjTurb_Linear_Error;		/*!< \brief Min error of the turbulent adjoint linear solver for the implicit formulation. */
 	unsigned short AdjTurb_Linear_Iter;		/*!< \brief Min error of the turbulent adjoint linear solver for the implicit formulation. */
-	bool Linear_Solver_Hist;		/*!< \brief Whether or not to output linear solver history to file */
 	double* Kappa_Flow,           /*!< \brief Numerical dissipation coefficients for the flow equations. */
 	*Kappa_AdjFlow,                  /*!< \brief Numerical dissipation coefficients for the adjoint equations. */
 	*Kappa_LinFlow;                  /*!< \brief Numerical dissipation coefficients for the linearized equations. */
@@ -940,6 +939,12 @@ public:
 	 * \return Integration limits for the equivalent area computation.
 	 */
 	double GetEA_IntLimit(unsigned short index);
+  
+  /*!
+	 * \brief Get the limit value for the adjoint variables.
+	 * \return Limit value for the adjoint variables.
+	 */
+	double GetAdjointLimit(void);
 
 	/*! 
 	 * \brief Get the the coordinates where of the box where the grid is going to be deformed.
@@ -1010,13 +1015,13 @@ public:
 	double GetFreeSurface_Outlet(void);
 
 	/*! 
-	 * \brief Creates a paraview file to visualize the partition made by the DDM software.
+	 * \brief Creates a tecplot file to visualize the partition made by the DDC software.
 	 * \return <code>TRUE</code> if the partition is going to be plotted; otherwise <code>FALSE</code>.
 	 */
 	bool GetVisualize_Partition(void);
 
 	/*! 
-	 * \brief Creates a paraview file to visualize the deformation made by the MDC software.
+	 * \brief Creates a teot file to visualize the deformation made by the MDC software.
 	 * \return <code>TRUE</code> if the deformation is going to be plotted; otherwise <code>FALSE</code>.
 	 */
 	bool GetVisualize_Deformation(void);
@@ -2032,12 +2037,6 @@ public:
 	double GetLinear_Solver_Relax(void);
 
 	/*!
-	 * \brief Get whether or not to output linear solver histry to file.
-	 * \return true or false.
-	 */
-	bool GetLinear_Solver_Hist(void);
-
-	/*!
 	 * \brief Get the kind of solver for the implicit solver.
 	 * \return Numerical solver for implicit formulation (solving the linear system).
 	 */
@@ -2940,13 +2939,6 @@ public:
 	 * \return Kind of sensitivity smoothing technique.
 	 */
 	unsigned short GetKind_SensSmooth(void);
-
-	/*!
-	 * \brief Get the type of objective function. There are two options: Continuous or Discrete
-	 * \note The objective function will determine the boundary condition of the adjoint problem.
-	 * \return Type of objective function.
-	 */
-	unsigned short GetKind_ObjFuncType(void);
 
 	/*!
 	 * \brief Get equations to be treated continuously. There are several options: Euler, Navier Stokes
@@ -4286,12 +4278,6 @@ public:
 	 * \param[in] val_iZone - Current grid domain number.
 	 */	
 	void SetNondimensionalization(unsigned short val_nDim, unsigned short val_iZone);
-
-	/*! 
-	 * \brief Deep copy in config class.
-	 * \param[in] copy - Original class to be copied.
-	 */	
-	void DeepCopy(CConfig *copy);
 
 	/*! 
 	 * \brief Config file postprocessing.

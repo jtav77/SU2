@@ -211,6 +211,16 @@ public:
 	 * \return Product of A(i,j) by vector *vec (stored at *prod_block_vector).
 	 */
 	void ProdBlockVector(unsigned long block_i, unsigned long block_j, double* vec);
+  
+  /*!
+	 * \fn void CSparseMatrix::ProdBlockVector(unsigned long block_i, unsigned long block_j, double* vec);
+	 * \brief Performs the product of the block (i,j) by vector vec.
+	 * \param[in] block_i - Indexes of the block in the matrix-by-blocks structure.
+	 * \param[in] block_j - Indexes of the block in the matrix-by-blocks structure.
+	 * \param[in] vec - Vector to be multiplied by the block (i,j) of the sparse matrix A.
+	 * \return Product of A(i,j) by vector *vec (stored at *prod_block_vector).
+	 */
+	void ProdBlockVector(unsigned long block_i, unsigned long block_j, CSysVector & vec);
 
 	/*! 
 	 * \brief Performs the product of i-th row of the upper part of a sparse matrix by a vector.
@@ -220,6 +230,14 @@ public:
 	 */
 	void UpperProduct(double* vec, unsigned long row_i);
 
+  /*!
+	 * \brief Performs the product of i-th row of the upper part of a sparse matrix by a vector.
+	 * \param[in] vec - Vector to be multiplied by the upper part of the sparse matrix A.
+	 * \param[in] row_i - Row of the matrix to be multiplied by vector vec.
+	 * \return prod Result of the product U(A)*vec (stored at *prod_row_vector).
+	 */
+	void UpperProduct(CSysVector & vec, unsigned long row_i);
+  
 	/*! 
 	 * \brief Performs the product of i-th row of the lower part of a sparse matrix by a vector.
 	 * \param[in] vec - Vector to be multiplied by the lower part of the sparse matrix A.
@@ -228,6 +246,14 @@ public:
 	 */
 	void LowerProduct(double* vec, unsigned long row_i);
 
+  /*!
+	 * \brief Performs the product of i-th row of the lower part of a sparse matrix by a vector.
+	 * \param[in] vec - Vector to be multiplied by the lower part of the sparse matrix A.
+	 * \param[in] row_i - Row of the matrix to be multiplied by vector vec.
+	 * \return prod Result of the product L(A)*vec (stored at *prod_row_vector).
+	 */
+	void LowerProduct(CSysVector & vec, unsigned long row_i);
+  
 	/*! 
 	 * \brief Performs the product of i-th row of the diagonal part of a sparse matrix by a vector.
 	 * \param[in] vec - Vector to be multiplied by the diagonal part of the sparse matrix A.
@@ -236,6 +262,14 @@ public:
 	 */
 	void DiagonalProduct(double* vec, unsigned long row_i);
 
+  /*!
+	 * \brief Performs the product of i-th row of the diagonal part of a sparse matrix by a vector.
+	 * \param[in] vec - Vector to be multiplied by the diagonal part of the sparse matrix A.
+	 * \param[in] row_i - Row of the matrix to be multiplied by vector vec.
+	 * \return prod Result of the product D(A)*vec (stored at *prod_row_vector).
+	 */
+	void DiagonalProduct(CSysVector & vec, unsigned long row_i);
+  
 	/*! 
 	 * \brief Performs a single LU-Symmetric Gauss Seidel (SGS) iteration over vector x (overwriten on x_n).
 	 * \param[in] b - RHS of the equation.
@@ -247,12 +281,20 @@ public:
 
 	/*! 
 	 * \brief Send receive the solution using MPI.
-	 * \param[in] x_n - Solution..
+	 * \param[in] x - Solution..
 	 * \param[in] geometry - Geometrical definition of the problem.
 	 * \param[in] config - Definition of the particular problem.
 	 */
 	void SendReceive_Solution(double* x, CGeometry *geometry, CConfig *config);
 	
+  /*!
+	 * \brief Send receive the solution using MPI.
+	 * \param[in] x - Solution..
+	 * \param[in] geometry - Geometrical definition of the problem.
+	 * \param[in] config - Definition of the particular problem.
+	 */
+	void SendReceive_Solution(CSysVector & x, CGeometry *geometry, CConfig *config);
+  
 	/*! 
 	 * \brief Solves the linear system Ax = b using the Symmetric Gauss Seidel (SGS) algorithm. 
 	 * \param[in] b - RHS of the equation.
@@ -342,6 +384,13 @@ public:
 	 */
 	void ComputeJacobiPreconditioner(const CSysVector & vec, CSysVector & prod, CGeometry *geometry, CConfig *config);
 	
+  /*!
+	 * \brief Multiply CSysVector by the preconditioner
+	 * \param[in] vec - CSysVector to be multiplied by the preconditioner.
+	 * \param[out] prod - Result of the product A*vec.
+	 */
+	void ComputeLUSGSPreconditioner(const CSysVector & vec, CSysVector & prod, CGeometry *geometry, CConfig *config);
+  
 	/*! 
 	 * \brief Multiply CSysVector by the preconditioner
 	 * \param[in] vec - CSysVector to be multiplied by the preconditioner.
@@ -362,22 +411,6 @@ public:
 	 * \param[in] config - Definition of the particular problem.
 	 */
 	void SetLin_Sol_History_Header(ofstream *LinConvHist_file, CConfig *config);
-
-	/*!
-	 * \brief Write the history file and the convergence on the screen for serial computations.
-	 * \param[in] LinConvHist_file - Pointer to the convergence history file (which is defined in the main subroutine).
-	 * \param[in] config - Definition of the particular problem.
-	 * \param[in] iExtIter - Current external iteration.
-	 * \param[in] linear_resid - Current linear residual.
-	 */
-	void SetLin_Sol_History_Iter(ofstream *LinConvHist_file, CConfig *config, unsigned long iExtIter, double linear_residual);
-	
-	/*! 
-	 * \brief Multiply the preconditioner by a vector. 
-	 * \param[in] vec - Vector to be multiplied by the preconditioner.
-	 * \param[out] prod - Result of the product A*vec.
-	 */
-	void PrecondVectorProduct(double* vec, double* prod, double nPoint);
 	
 };
 
@@ -444,13 +477,44 @@ public:
 };
 
 /*!
+ * \class CLUSGSPreconditioner
+ * \brief specialization of preconditioner that uses CSparseMatrix class
+ */
+class CLUSGSPreconditioner : public CPreconditioner {
+private:
+	CSparseMatrix* sparse_matrix; /*!< \brief pointer to matrix that defines the preconditioner. */
+  CGeometry* geometry; /*!< \brief pointer to matrix that defines the geometry. */
+	CConfig* config; /*!< \brief pointer to matrix that defines the config. */
+  
+public:
+	
+	/*!
+	 * \brief constructor of the class
+	 * \param[in] matrix_ref - matrix reference that will be used to define the preconditioner
+	 */
+	CLUSGSPreconditioner(CSparseMatrix & matrix_ref, CGeometry *geometry_ref, CConfig *config_ref);
+	
+	/*!
+	 * \brief destructor of the class
+	 */
+	~CLUSGSPreconditioner() {}
+	
+	/*!
+	 * \brief operator that defines the preconditioner operation
+	 * \param[in] u - CSysVector that is being preconditioned
+	 * \param[out] v - CSysVector that is the result of the preconditioning
+	 */
+	void operator()(const CSysVector & u, CSysVector & v) const;
+};
+
+/*!
  * \class CLineletPreconditioner
  * \brief specialization of preconditioner that uses CSparseMatrix class
  */
 class CLineletPreconditioner : public CPreconditioner {
 private:
 	CSparseMatrix* sparse_matrix; /*!< \brief pointer to matrix that defines the preconditioner. */
-    CGeometry* geometry; /*!< \brief pointer to matrix that defines the geometry. */
+  CGeometry* geometry; /*!< \brief pointer to matrix that defines the geometry. */
 	CConfig* config; /*!< \brief pointer to matrix that defines the config. */
     
 public:
