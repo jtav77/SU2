@@ -293,8 +293,26 @@ CEulerSolution::CEulerSolution(CGeometry *geometry, CConfig *config, unsigned sh
 	if (!restart || geometry->GetFinestMGLevel() == false || nZone > 1) {
 
 		/*--- Restart the solution from infinity ---*/
-		for (iPoint = 0; iPoint < nPoint; iPoint++)
-			node[iPoint] = new CEulerVariable(Density_Inf, Velocity_Inf, Energy_Inf, nDim, nVar, config);
+		for (iPoint = 0; iPoint < nPoint; iPoint++) {
+//            double x = geometry->node[iPoint]->GetCoord()[0]; // x-location of the node.
+//            if (x < 0.0) {
+//                // Adjust the free stream values by adjusting the Mach number
+//                double gust_factor = 1.2;
+//                double Mach = gust_factor*config->GetMach_FreeStreamND();
+//                double alpha = config->GetAoA()*PI_NUMBER/180.0;
+//                double u = cos(alpha)*Mach*sqrt(Gamma*Gas_Constant*config->GetTemperature_FreeStream());
+//                double v = sin(alpha)*Mach*sqrt(Gamma*Gas_Constant*config->GetTemperature_FreeStream());
+//                double mag_v = sqrt(u*u + v*v);
+//                double E = GetPressure_Inf()/((Gamma_Minus_One)*GetDensity_Inf()) + 0.5*mag_v*mag_v;
+//                double *vel;
+//                double velo[2] = {u,v};
+//                vel = velo;
+//                //Velocity_Inf = velo;
+//                //Energy_Inf = E;
+//                node[iPoint] = new CEulerVariable(Density_Inf, vel, E, nDim, nVar, config);
+//            } else
+                node[iPoint] = new CEulerVariable(Density_Inf, Velocity_Inf, Energy_Inf, nDim, nVar, config);
+        }
 	}
 
 	else {
@@ -3850,6 +3868,59 @@ void CEulerSolution::BC_Far_Field(CGeometry *geometry, CSolution **solution_cont
                 
                 /*---------- Implement the Gust in here ----------*/
                 
+//                double x = geometry->node[iPoint]->GetCoord()[0]; // x-location of the node on the farfield boundary
+//                // Check if point belongs to the inflow (x<0)
+//                if (x < 0.0) {
+//                    // The gust generated is based on formula 6 from the extremes.pdf
+//                    /*--- Variables for the Gust ---*/
+//                    // The gust generated is based on formula 6 from the extremes.pdf
+//                    double ue = 20; //largest wind speed excursion from the mean level (m/s)
+//                    //double N = 256; // number of time steps per revolution
+//                    //double xmin = -380; // This is grid dependent (do something fancier to get this)
+//                    double N = 50; // number of time steps per revolution
+//                    double xmin = -20; // This is grid dependent (do something fancier to get this)
+//                    
+//                    double dt = config->GetDelta_UnstTime();
+//                    double T = N*dt;    //Period of the rotation.
+//                    double Tg = T;      // Gust time scale
+//                    double Tbegin = 0.1*T; //controls when the gust begins
+//                    unsigned long ExtIter = config->GetExtIter();
+//                    double t = (ExtIter+1)*dt; // physical time
+//                    double Umean = GetVelocity_Inf(0);
+//                    double time_x; // modified time to account for curvature of the grid
+//                    x = geometry->node[iPoint]->GetCoord()[0];
+//                    time_x = t - (abs(xmin)-abs(x))/Umean; // modified time to account for curvature of the grid
+//                    
+//                    
+//                    // apply the gust, correct the time based on location of the node
+//                    if (Tbegin < time_x && time_x < Tbegin+Tg) {
+//                        double u = Umean-0.37*ue*sin(3*PI_NUMBER*(time_x-Tbegin)/Tg) * (1-cos(2*PI_NUMBER*(time_x-Tbegin)/Tg));
+//                        if (iVertex == 1)
+//                        std::cout << "U/Uinf = " << u*U_infty[0]/U_infty[1] << "   time =  " << t << std::endl;
+//                        
+//                        //std::cout << "u = " << u << std::endl;
+//                        // Modify the infinity values with the gust
+//                        //std::cout << "u1 = " << U_infty[1] << std::endl;
+//                        U_infty[1] = U_infty[0]*u;
+//                        V_infty[1] = u;
+//                        //std::cout << "u2 = " << U_infty[1] << std::endl;
+//                        double v = GetVelocity_Inf(1);
+//                        double mag_v = sqrt(u*u + v*v);
+//                        double E = GetPressure_Inf()/((Gamma_Minus_One)*GetDensity_Inf()) + 0.5*mag_v*mag_v;
+//                        U_infty[nDim+1] = GetDensity_Inf()*E;
+//                    }
+//                    
+//                }
+                
+                // For testing purposes
+                //                if (iVertex == 31 && config->GetExtIter() == 4) {
+                //                    std::cout.precision(15);
+                //                    std::cout << "u = " << V_infty[1] << std::endl;
+                //                }
+                
+                /*-------------------------------------------------*/
+                /*---------- Implement the Gust in here ----------*/
+                
                 
                 double x = geometry->node[iPoint]->GetCoord()[0]; // x-location of the node on the farfield boundary
                 // Check if point belongs to the inflow (x<0)
@@ -3859,7 +3930,7 @@ void CEulerSolution::BC_Far_Field(CGeometry *geometry, CSolution **solution_cont
                     double N = config->GetnExtIter(); // number of unsteady time steps
                     double dt = config->GetDelta_UnstTime();
                     double T = N*dt; // Total simulation time
-                    double Tbegin = 0.1*T; //controls when the gust begins
+                    double Tbegin = 0.0*T; //controls when the gust begins
                     unsigned long ExtIter = config->GetExtIter();
                     double t = (ExtIter+1)*dt; // physical time // maybe not +1
                     
@@ -3872,14 +3943,15 @@ void CEulerSolution::BC_Far_Field(CGeometry *geometry, CSolution **solution_cont
                         double v = sin(alpha)*Mach*sqrt(Gamma*Gas_Constant*config->GetTemperature_FreeStream());
                         double mag_v = sqrt(u*u + v*v);
                         double E = GetPressure_Inf()/((Gamma_Minus_One)*GetDensity_Inf()) + 0.5*mag_v*mag_v;
-                        
+                        //double E = 101311/((Gamma_Minus_One)*GetDensity_Inf()) + 0.5*mag_v*mag_v;
+
                         // Set the conservative variables.
                         U_infty[1] = GetDensity_Inf()*u;
                         U_infty[2] = GetDensity_Inf()*v;
                         U_infty[nDim+1] = GetDensity_Inf()*E;
                         
                     }
-                    
+                
                     
                 }
                 
@@ -4143,20 +4215,76 @@ void CEulerSolution::BC_Inlet(CGeometry *geometry, CSolution **solution_containe
                         /*--- Mass flow has been specified at the inlet. ---*/
                     case MASS_FLOW:
                         
-                        /*--- Retrieve the specified mass flow for the inlet. ---*/
-                        Density  = config->GetInlet_Ttotal(Marker_Tag);
-                        Vel_Mag  = config->GetInlet_Ptotal(Marker_Tag);
-                        Flow_Dir = config->GetInlet_FlowDir(Marker_Tag);
+//                        /*--- Retrieve the specified mass flow for the inlet. ---*/
+//                        Density  = config->GetInlet_Ttotal(Marker_Tag);
+//                        Vel_Mag  = config->GetInlet_Ptotal(Marker_Tag);
+//                        Flow_Dir = config->GetInlet_FlowDir(Marker_Tag);
+//                        
+//                        /*--- Non-dim. the inputs if necessary. ---*/
+//                        Density /= config->GetDensity_Ref();
+//                        Vel_Mag /= config->GetVelocity_Ref();
+//                        
+//                        /*--- Get primitives from current inlet state. ---*/
+//                        for (iDim = 0; iDim < nDim; iDim++)
+//                            Velocity[iDim] = node[iPoint]->GetVelocity(iDim, incompressible);
+//                        Pressure    = node[iPoint]->GetPressure(incompressible);
+//                        std::cout << "Pressure_before = " << Pressure << std::endl;
+//                        SoundSpeed2 = Gamma*Pressure/U_domain[0];
+//                        
+//                        /*--- Compute the acoustic Riemann invariant that is extrapolated
+//                         from the domain interior. ---*/
+//                        Riemann = Two_Gamma_M1*sqrt(SoundSpeed2);
+//                        for (iDim = 0; iDim < nDim; iDim++)
+//                            Riemann += Velocity[iDim]*UnitaryNormal[iDim];
+//                        
+//                        /*--- Speed of sound squared for fictitious inlet state ---*/
+//                        SoundSpeed2 = Riemann;
+//                        for (iDim = 0; iDim < nDim; iDim++)
+//                            SoundSpeed2 -= Vel_Mag*Flow_Dir[iDim]*UnitaryNormal[iDim];
+//                        
+//                        SoundSpeed2 = max(0.0,0.5*Gamma_Minus_One*SoundSpeed2);
+//                        SoundSpeed2 = SoundSpeed2*SoundSpeed2;
+//                        
+//                        /*--- Pressure for the fictitious inlet state ---*/
+//                        Pressure = SoundSpeed2*Density/Gamma;
+//                        std::cout << "Pressure_after = " << Pressure << std::endl;
+//                        
+//                        /*--- Energy for the fictitious inlet state ---*/
+//                        Energy = Pressure/(Density*Gamma_Minus_One)+0.5*Vel_Mag*Vel_Mag;
+//                        
+//                        /*--- Conservative variables, using the derived quantities ---*/
+//                        U_inlet[0] = Density;
+//                        for (iDim = 0; iDim < nDim; iDim++)
+//                            U_inlet[iDim+1] = Vel_Mag*Flow_Dir[iDim]*Density;
+//                        U_inlet[nDim+1] = Energy*Density;
+//                        
+//                        /*--- Primitive variables, using the derived quantities ---*/
+//                        V_inlet[0] = Pressure / ( Gas_Constant * Density);
+//                        for (iDim = 0; iDim < nDim; iDim++)
+//                            V_inlet[iDim+1] = Vel_Mag*Flow_Dir[iDim];
+//                        V_inlet[nDim+1] = Pressure;
+//                        V_inlet[nDim+2] = Density;
+//                        
+//                        break;
+//                        
                         
                         /*--- Non-dim. the inputs if necessary. ---*/
-                        Density /= config->GetDensity_Ref();
-                        Vel_Mag /= config->GetVelocity_Ref();
+                        //Pressure /= config->GetDensity_Ref();
+                        //Vel_Mag /= config->GetVelocity_Ref();
                         
                         /*--- Get primitives from current inlet state. ---*/
                         for (iDim = 0; iDim < nDim; iDim++)
                             Velocity[iDim] = node[iPoint]->GetVelocity(iDim, incompressible);
                         Pressure    = node[iPoint]->GetPressure(incompressible);
+                        //std::cout << "Pressure_before = " << Pressure << std::endl;
+                        Density = U_domain[0];
                         SoundSpeed2 = Gamma*Pressure/U_domain[0];
+                        
+                        /*--- Retrieve the specified mass flow for the inlet. ---*/
+                        Pressure  = config->GetInlet_Ttotal(Marker_Tag);
+                        Vel_Mag  = config->GetInlet_Ptotal(Marker_Tag);
+                        Flow_Dir = config->GetInlet_FlowDir(Marker_Tag);
+                        
                         
                         /*--- Compute the acoustic Riemann invariant that is extrapolated
                          from the domain interior. ---*/
@@ -4173,7 +4301,9 @@ void CEulerSolution::BC_Inlet(CGeometry *geometry, CSolution **solution_containe
                         SoundSpeed2 = SoundSpeed2*SoundSpeed2;
                         
                         /*--- Pressure for the fictitious inlet state ---*/
-                        Pressure = SoundSpeed2*Density/Gamma;
+                        //Pressure = SoundSpeed2*Density/Gamma;
+                        Density = Pressure*Gamma/SoundSpeed2;
+                        //std::cout << "Pressure_after = " << Pressure << std::endl;
                         
                         /*--- Energy for the fictitious inlet state ---*/
                         Energy = Pressure/(Density*Gamma_Minus_One)+0.5*Vel_Mag*Vel_Mag;
@@ -4192,6 +4322,7 @@ void CEulerSolution::BC_Inlet(CGeometry *geometry, CSolution **solution_containe
                         V_inlet[nDim+2] = Density;
                         
                         break;
+
 				}
 			}
             
