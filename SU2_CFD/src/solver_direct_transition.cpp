@@ -425,73 +425,32 @@ void CTransLMSolver::Source_Template(CGeometry *geometry, CSolver **solver_conta
 }
 
 void CTransLMSolver::BC_HeatFlux_Wall(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics, CNumerics *visc_numerics, CConfig *config, unsigned short val_marker) {
-	unsigned long iPoint, iVertex, Point_Normal;
-	unsigned short iVar, iDim;
+
+  unsigned long iPoint, iVertex;
+  unsigned short iVar;
   int total_index;
-  double *U_i;
-  double *U_domain = new double[nVar];
-  double *U_wall   = new double[nVar];
-  double *Normal   = new double[nDim];
-  double *Residual = new double[nVar];
+  
+  for (iVertex = 0; iVertex < geometry->nVertex[val_marker]; iVertex++) {
+    iPoint = geometry->vertex[val_marker][iVertex]->GetNode();
 
-  bool implicit = (config->GetKind_TimeIntScheme_Flow() == EULER_IMPLICIT); 
+    /*--- Check if the node belongs to the domain (i.e, not a halo node) ---*/
+    if (geometry->node[iPoint]->GetDomain()) {
 
-//  cout << "Setting wall BC -AA\n";
-	for (iVertex = 0; iVertex < geometry->nVertex[val_marker]; iVertex++) {
+      /* --- Impose boundary values (Dirichlet) ---*/
+      Solution[0] = 0.0;
+      Solution[1] = 0.0;
+      node[iPoint]->SetSolution_Old(Solution);
+      Set_Residual_Zero(iPoint);
 
-		iPoint = geometry->vertex[val_marker][iVertex]->GetNode();
-		
-		/*--- Check if the node belongs to the domain (i.e., not a halo node) ---*/
-		if (geometry->node[iPoint]->GetDomain()) {
-
-			/*--- Normal vector for this vertex (negate for outward convention) ---*/
-			geometry->vertex[val_marker][iVertex]->GetNormal(Normal);
-			for (iDim = 0; iDim < nDim; iDim++) Normal[iDim] = -Normal[iDim];
-
-      Point_Normal = geometry->vertex[val_marker][iVertex]->GetNormal_Neighbor();
-      /*--- Set both interior and exterior point to current value ---*/
-      for (iVar=0; iVar < nVar; iVar++) {
-        U_domain[iVar] = node[iPoint]->GetSolution(iVar);
-        U_wall[iVar]   = node[iPoint]->GetSolution(iVar); 	
-      }
-
-      /*--- Set various quantities in the solver class ---*/
-      numerics->SetNormal(Normal);
-      numerics->SetTransVar(U_domain,U_wall);
-  		U_i = solver_container[FLOW_SOL]->node[iPoint]->GetSolution();
-  		numerics->SetConservative(U_i, U_i);
-
-      /*--- Compute the residual using an upwind scheme ---*/
-      numerics->ComputeResidual(Residual, Jacobian_i, Jacobian_j, config);
-      LinSysRes.AddBlock(iPoint, Residual);
-
-			/*--- Jacobian contribution for implicit integration ---*/
-			if (implicit) {
-        Jacobian.AddBlock(iPoint,iPoint,Jacobian_i);
+      /*--- includes 1 in the diagonal ---*/
+      for (iVar = 0; iVar < nVar; iVar++) {
+        total_index = iPoint*nVar+iVar;
+        Jacobian.DeleteValsRowi(total_index);
       }
     }
   }
 
-// Diriclet BC
-//  for (iVertex = 0; iVertex < geometry->nVertex[val_marker]; iVertex++) {
-//    iPoint = geometry->vertex[val_marker][iVertex]->GetNode();
-//
-//		/*--- Check if the node belongs to the domain (i.e, not a halo node) ---*/
-//		if (geometry->node[iPoint]->GetDomain()) {
-//
-//      /* --- Impose boundary values (Dirichlet) ---*/
-//      Solution[0] = 0.0;
-//      Solution[1] = 0.0;
-//			node[iPoint]->SetSolution_Old(Solution);
-//			LinSysRes.SetBlock_Zero(iPoint);
-//
-//			/*--- includes 1 in the diagonal ---*/
-//      for (iVar = 0; iVar < nVar; iVar++) {
-//        total_index = iPoint*nVar+iVar;
-//        Jacobian.DeleteValsRowi(total_index);
-//      }
-//		}
-//	}
+
 }
 
 void CTransLMSolver::BC_Far_Field(CGeometry *geometry, CSolver **solver_container, CNumerics *conv_numerics, CNumerics *visc_numerics, CConfig *config, unsigned short val_marker) {
