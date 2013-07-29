@@ -3245,8 +3245,7 @@ public:
 	 * \param[in] config - Definition of the particular problem.
 	 * \param[in] val_marker - Surface marker where the boundary condition is applied.
 	 */
-	void BC_Inlet(CGeometry *geometry, CSolver **solver_container, CNumerics *conv_numerics, CNumerics *visc_numerics, CConfig *config,
-                  unsigned short val_marker);
+    void BC_Inlet(CGeometry *geometry, CSolver **solution_container, CNumerics *conv_solver, CNumerics *visc_solver, CConfig *config, unsigned short val_marker);
     
 	/*!
 	 * \brief Impose the outlet boundary condition.
