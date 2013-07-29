@@ -2,7 +2,7 @@
  * \file geometry_structure.cpp
  * \brief Main subroutines for creating the primal grid and multigrid structure.
  * \author Aerospace Design Laboratory (Stanford University) <http://su2.stanford.edu>.
- * \version 2.0.5
+ * \version 2.0.6
  *
  * Stanford University Unstructured (SU2) Code
  * Copyright (C) 2012 Aerospace Design Laboratory
@@ -548,7 +548,6 @@ void CPhysicalGeometry::SU2_Format(CConfig *config, string val_mesh_filename, un
       /*--- Allocate space for elements ---*/
       if (!config->GetDivide_Element()) elem = new CPrimalGrid*[nElem];
       else {
-        if (size == 1) cout << "Dividing elements into triangles or tetrahedra." << endl;
         if (nDim == 2) elem = new CPrimalGrid*[2*nElem];
         if (nDim == 3) elem = new CPrimalGrid*[6*nElem];
       }
@@ -1071,7 +1070,6 @@ void CPhysicalGeometry::SU2_Format(CConfig *config, string val_mesh_filename, un
           /*--- Allocate space for elements ---*/
           if (!config->GetDivide_Element()) bound[iMarker] = new CPrimalGrid* [nElem_Bound[iMarker]];
           else {
-            if (size == 1) cout << "Dividing elements into triangles or tetrahedra." << endl;
             if (nDim == 2) bound[iMarker] = new CPrimalGrid* [2*nElem_Bound[iMarker]];;
             if (nDim == 3) bound[iMarker] = new CPrimalGrid* [2*nElem_Bound[iMarker]];;
           }

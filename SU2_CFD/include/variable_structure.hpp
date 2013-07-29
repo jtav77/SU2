@@ -4,7 +4,7 @@
  *        each kind of governing equation (direct, adjoint and linearized).
  *        The subroutines and functions are in the <i>variable_structure.cpp</i> file.
  * \author Aerospace Design Laboratory (Stanford University) <http://su2.stanford.edu>.
- * \version 2.0.5
+ * \version 2.0.6
  *
  * Stanford University Unstructured (SU2) Code
  * Copyright (C) 2012 Aerospace Design Laboratory
@@ -36,7 +36,7 @@ using namespace std;
  * \class CVariable
  * \brief Main class for defining the variables.
  * \author F. Palacios.
- * \version 2.0.5
+ * \version 2.0.6
  */
 class CVariable {
 protected:
@@ -912,7 +912,7 @@ public:
 	 * \brief A virtual member.
 	 * \return Sets separation intermittency
 	 */
-	virtual void SetGammaEff(void);
+	virtual void ComputeGammaEff(void);
 
 	/*!
 	 * \brief A virtual member.
@@ -962,7 +962,7 @@ public:
 	 * \param[in] val_Kind_Turb_Model - Kind of turbulence model.
 	 * \param[in] Turb_Solution - Solution of the turbulence model.
 	 */		
-	virtual void SetEddyViscosity(unsigned short val_Kind_Turb_Model, CVariable *Turb_Solution);
+	virtual void SetEddyViscosity(unsigned short val_Kind_Turb_Model, CVariable *TurbVariable);
 
 	/*!
 	 * \brief A virtual member.
@@ -1497,7 +1497,7 @@ public:
  * \class CBaselineVariable
  * \brief Main class for defining the variables of a baseline solution from a restart file (for output).
  * \author F. Palacios, T. Economon.
- * \version 2.0.5
+ * \version 2.0.6
  */
 class CBaselineVariable : public CVariable {
 public:
@@ -1527,7 +1527,7 @@ public:
  * \brief Main class for defining the variables of the potential solver.
  * \ingroup Potential_Flow_Equation
  * \author F. Palacios.
- * \version 2.0.5
+ * \version 2.0.6
  */
 class CPotentialVariable : public CVariable {
 	double *Charge_Density;
@@ -1549,6 +1549,11 @@ public:
 	 */	
 	CPotentialVariable(double val_potential, unsigned short val_ndim, unsigned short val_nvar, CConfig *config);
 
+  /*!
+	 * \brief Destructor of the class.
+	 */
+	~CPotentialVariable(void);
+  
 	/*!
 	 * \brief A virtual member.
 	 */
@@ -1585,10 +1590,6 @@ public:
 	 */
 	void SetPlasmaTimeStep(double dt);
 
-	/*!
-	 * \brief Destructor of the class. 
-	 */	
-	~CPotentialVariable(void);
 };
 
 /*! 
@@ -1596,7 +1597,7 @@ public:
  * \brief Main class for defining the variables of the wave equation solver.
  * \ingroup Potential_Flow_Equation
  * \author F. Palacios.
- * \version 2.0.5
+ * \version 2.0.6
  */
 class CWaveVariable : public CVariable {
 protected:
@@ -1678,7 +1679,7 @@ public:
  * \brief Main class for defining the variables of the Heat equation solver.
  * \ingroup Potential_Flow_Equation
  * \author F. Palacios.
- * \version 2.0.5
+ * \version 2.0.6
  */
 class CHeatVariable : public CVariable {
 protected:
@@ -1724,7 +1725,7 @@ public:
  * \brief Main class for defining the variables of the FEA equation solver.
  * \ingroup Potential_Flow_Equation
  * \author F. Palacios.
- * \version 2.0.5
+ * \version 2.0.6
  */
 class CFEAVariable : public CVariable {
 protected:
@@ -1763,7 +1764,7 @@ public:
  * \brief Main class for defining the variables of the Euler's solver.
  * \ingroup Euler_Equations
  * \author F. Palacios.
- * \version 2.0.5
+ * \version 2.0.6
  */
 class CEulerVariable : public CVariable {
 protected:
@@ -2068,7 +2069,7 @@ public:
  * \brief Main class for defining the variables of the Navier-Stokes' solver.
  * \ingroup Navier_Stokes_Equations
  * \author F. Palacios.
- * \version 2.0.5
+ * \version 2.0.6
  */
 class CNSVariable : public CEulerVariable {
 private:
@@ -2147,7 +2148,7 @@ public:
 	 * \param[in] val_Kind_Turb_Model - Kind of turbulence model.
 	 * \param[in] Turb_Solution - Solution of the turbulence model.
 	 */
-	void SetEddyViscosity(unsigned short val_Kind_Turb_Model, CVariable *Turb_Solution);
+	void SetEddyViscosity(unsigned short val_Kind_Turb_Model, CVariable *TurbVariable);
 
 	/*!
 	 * \overload
@@ -2212,7 +2213,7 @@ public:
  * \brief Main class for defining the variables of the turbulence model.
  * \ingroup Turbulence_Model
  * \author A. Bueno.
- * \version 2.0.5
+ * \version 2.0.6
  */
 class CTurbVariable : public CVariable {
 protected:
@@ -2256,7 +2257,7 @@ public:
  * \brief Main class for defining the variables of the turbulence model.
  * \ingroup Turbulence_Model
  * \author A. Bueno.
- * \version 2.0.5
+ * \version 2.0.6
  */
 
 class CTurbSAVariable : public CTurbVariable {
@@ -2302,7 +2303,7 @@ public:
  * \brief Main class for defining the variables of the turbulence model.
  * \ingroup Turbulence_Model
  * \author A. Bueno.
- * \version 2.0.5
+ * \version 2.0.6
  */
 
 class CTransLMVariable : public CTurbVariable {
@@ -2345,11 +2346,15 @@ public:
   void SetGammaSep(double gamma_sep_in);
   
   /*!
+	 * \brief routine to compute gamma_eff (Equation 19, Langtry 2009)
+	 */
+  void ComputeGammaEff(void);
+
+  /*!
 	 * \brief routine to set gamma_eff (Equation 19, Langtry 2009)
 	 */
-  void SetGammaEff(void);
-  
   double GetGammaEff(void);
+  
 };
 
 /*! 
@@ -2357,7 +2362,7 @@ public:
  * \brief Main class for defining the variables of the turbulence model.
  * \ingroup Turbulence_Model
  * \author A. Bueno.
- * \version 2.0.5
+ * \version 2.0.6
  */
 
 class CTurbSSTVariable : public CTurbVariable {
@@ -2419,7 +2424,7 @@ public:
  * \brief Main class for defining the variables of the adjoint potential solver.
  * \ingroup Potential_Flow_Equation
  * \author F. Palacios.
- * \version 2.0.5
+ * \version 2.0.6
  */
 class CAdjPotentialVariable : public CVariable {
 private:
@@ -2454,7 +2459,7 @@ public:
  * \brief Main class for defining the variables of the adjoint Euler solver.
  * \ingroup Euler_Equations
  * \author F. Palacios.
- * \version 2.0.5
+ * \version 2.0.6
  */
 class CAdjEulerVariable : public CVariable {
 protected:
@@ -2582,7 +2587,7 @@ public:
  * \brief Main class for defining the variables of the adjoint Navier-Stokes solver.
  * \ingroup Navier_Stokes_Equations
  * \author F. Palacios.
- * \version 2.0.5
+ * \version 2.0.6
  */
 class CAdjNSVariable : public CAdjEulerVariable {	
 private:
@@ -2631,7 +2636,7 @@ public:
 	 * \param[in] val_Kind_Turb_Model - Kind of turbulence model.
 	 * \param[in] Turb_Solution - Solution of the turbulence model.
 	 */
-	void SetEddyViscosity_Jacobian(unsigned short val_Kind_Turb_Model, CVariable *Turb_Solution);
+	void SetEddyViscosity_Jacobian(unsigned short val_Kind_Turb_Model, CVariable *TurbVariable);
 
 	/*!
 	 * \brief Set the value of the adjoint velocity.
@@ -2691,7 +2696,7 @@ public:
  * \brief Main class for defining the variables of the adjoint turbulence model.
  * \ingroup Turbulence_Model
  * \author A. Bueno.
- * \version 2.0.5
+ * \version 2.0.6
  */
 class CAdjTurbVariable : public CVariable {
 protected:
@@ -2741,7 +2746,7 @@ public:
  * \brief Main class for defining the variables of the linearized potential equation.
  * \ingroup Potential_Flow_Equation
  * \author F. Palacios.
- * \version 2.0.5
+ * \version 2.0.6
  */
 class CLinPotentialVariable : public CVariable {
 public:	
@@ -2752,7 +2757,7 @@ public:
  * \brief Main class for defining the variables of the linearized Euler's equations.
  * \ingroup Euler_Equations
  * \author F. Palacios.
- * \version 2.0.5
+ * \version 2.0.6
  */
 class CLinEulerVariable : public CVariable {
 private:
@@ -2829,7 +2834,7 @@ public:
  * \brief Main class for defining the variables of the linearized Navier-Stokes' equations.
  * \ingroup Navier_Stokes_Equations
  * \author F. Palacios.
- * \version 2.0.5
+ * \version 2.0.6
  */
 class CLinNSVariable : public CLinEulerVariable {
 public:
@@ -2838,7 +2843,7 @@ public:
 /*!
  * \class CPlasmaVariable
  * \brief Main class for defining the variables of the Plasma solver.
- * \version 2.0.5
+ * \version 2.0.6
  */
 class CPlasmaVariable : public CVariable {
 protected:	
@@ -3264,7 +3269,7 @@ public:
  * \brief Main class for defining the variables of the Level Set.
  * \ingroup LevelSet_Model
  * \author F. Palacios.
- * \version 2.0.5
+ * \version 2.0.6
  */
 class CLevelSetVariable : public CVariable {
 protected:
@@ -3295,7 +3300,12 @@ public:
 	 * \param[in] config - Definition of the particular problem.	 
 	 */	
 	CLevelSetVariable(double val_levelset, unsigned short val_ndim, unsigned short val_nvar, CConfig *config);
-
+  
+	/*!
+	 * \brief Destructor of the class.
+	 */
+	virtual ~CLevelSetVariable(void);
+  
   /*!
 	 * \brief Get the primitive variables.
 	 * \param[in] val_var - Index of the variable.
@@ -3322,11 +3332,6 @@ public:
 	 */		
 	double GetDiffLevelSet(void);
 
-	/*!
-	 * \brief Destructor of the class.
-	 */
-	virtual ~CLevelSetVariable(void);
-
 };
 
 /*! 
@@ -3334,7 +3339,7 @@ public:
  * \brief Main class for defining the variables of the Level Set.
  * \ingroup LevelSet_Model
  * \author F. Palacios.
- * \version 2.0.5
+ * \version 2.0.6
  */
 class CAdjLevelSetVariable : public CVariable {
 public:
@@ -3372,7 +3377,7 @@ public:
  * \brief Main class for defining the variables of the adjoint Euler solver.
  * \ingroup Euler_Equations
  * \author F. Palacios.
- * \version 2.0.5
+ * \version 2.0.6
  */
 class CAdjPlasmaVariable : public CVariable {
 protected:
@@ -3463,7 +3468,7 @@ public:
  * \brief Main class for defining the variables of the potential solver.
  * \ingroup Potential_Flow_Equation
  * \author F. Palacios.
- * \version 2.0.5
+ * \version 2.0.6
  */
 class CTemplateVariable : public CVariable {
 public:

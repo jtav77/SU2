@@ -2,7 +2,7 @@
  * \file config_structure.cpp
  * \brief Main file for reading the config file.
  * \author Aerospace Design Laboratory (Stanford University) <http://su2.stanford.edu>.
- * \version 2.0.5
+ * \version 2.0.6
  *
  * Stanford University Unstructured (SU2) Code
  * Copyright (C) 2012 Aerospace Design Laboratory
@@ -108,8 +108,6 @@ CConfig::CConfig(char case_filename[200], unsigned short val_software, unsigned 
 	AddSpecialOption("RESTART_SOL", Restart, SetBoolOption, false);
 	/* DESCRIPTION: Restart a Plasma solution from an Euler native solution file */
 	AddSpecialOption("RESTART_PLASMA_FROM_EULER", Restart_Euler2Plasma, SetBoolOption, false);
-	/* DESCRIPTION: Specify number of domain partitions */
-	AddScalarOption("NUMBER_PART", nDomain, 0);
 	/* DESCRIPTION: Write a tecplot file for each partition */
 	AddSpecialOption("VISUALIZE_PART", Visualize_Partition, SetBoolOption, false);
 	/* DESCRIPTION: Divide rectangles into triangles */
@@ -289,9 +287,9 @@ CConfig::CConfig(char case_filename[200], unsigned short val_software, unsigned 
 	/* CONFIG_CATEGORY: Linear solver definition */
 
 	/* DESCRIPTION: Linear solver for the implicit, mesh deformation, or discrete adjoint systems */
-	AddEnumOption("LINEAR_SOLVER", Kind_Linear_Solver, Linear_Solver_Map, "LU_SGS");
+	AddEnumOption("LINEAR_SOLVER", Kind_Linear_Solver, Linear_Solver_Map, "FGMRES");
 	/* DESCRIPTION: Preconditioner for the Krylov linear solvers */
-	AddEnumOption("LINEAR_SOLVER_PREC", Kind_Linear_Solver_Prec, Linear_Solver_Prec_Map, "JACOBI");
+	AddEnumOption("LINEAR_SOLVER_PREC", Kind_Linear_Solver_Prec, Linear_Solver_Prec_Map, "LU_SGS");
 	/* DESCRIPTION: Minimum error threshold for the linear solver for the implicit formulation */
 	AddScalarOption("LINEAR_SOLVER_ERROR", Linear_Solver_Error, 1E-5);
 	/* DESCRIPTION: Maximum number of iterations of the linear solver for the implicit formulation */
@@ -300,9 +298,9 @@ CConfig::CConfig(char case_filename[200], unsigned short val_software, unsigned 
 	AddScalarOption("LINEAR_SOLVER_RELAX", Linear_Solver_Relax, 1.0);
 
 	/* DESCRIPTION: Linear solver for the turbulent adjoint systems */
-	AddEnumOption("ADJTURB_LIN_SOLVER", Kind_AdjTurb_Linear_Solver, Linear_Solver_Map, "LU_SGS");
+	AddEnumOption("ADJTURB_LIN_SOLVER", Kind_AdjTurb_Linear_Solver, Linear_Solver_Map, "FGMRES");
 	/* DESCRIPTION: Preconditioner for the turbulent adjoint Krylov linear solvers */
-	AddEnumOption("ADJTURB_LIN_PREC", Kind_AdjTurb_Linear_Prec, Linear_Solver_Prec_Map, "JACOBI");
+	AddEnumOption("ADJTURB_LIN_PREC", Kind_AdjTurb_Linear_Prec, Linear_Solver_Prec_Map, "LU_SGS");
 	/* DESCRIPTION: Minimum error threshold for the turbulent adjoint linear solver for the implicit formulation */
 	AddScalarOption("ADJTURB_LIN_ERROR", AdjTurb_Linear_Error, 1E-5);
 	/* DESCRIPTION: Maximum number of iterations of the turbulent adjoint linear solver for the implicit formulation */
@@ -612,8 +610,6 @@ CConfig::CConfig(char case_filename[200], unsigned short val_software, unsigned 
 	AddScalarOption("MESH_OUT_FILENAME", Mesh_Out_FileName, string("mesh_out.su2"));
 	/* DESCRIPTION: Output file convergence history (w/o extension) */
 	AddScalarOption("CONV_FILENAME", Conv_FileName, string("history"));
-	/* DESCRIPTION: Output file linear solver history (w/o extension)  */
-	AddScalarOption("LIN_CONV_FILENAME", Lin_Conv_FileName, string("lin_history"));
 	/* DESCRIPTION: Restart flow input file */
 	AddScalarOption("SOLUTION_FLOW_FILENAME", Solution_FlowFileName, string("solution_flow.dat"));
 	/* DESCRIPTION: Restart flow input file */
@@ -674,8 +670,6 @@ CConfig::CConfig(char case_filename[200], unsigned short val_software, unsigned 
 	AddSpecialOption("WRT_SOL_TEC_ASCII", Wrt_Sol_Tec_ASCII, SetBoolOption, true);
 	/* DESCRIPTION: Write a Tecplot binary volume solution file */
 	AddSpecialOption("WRT_SOL_TEC_BINARY", Wrt_Sol_Tec_Binary, SetBoolOption, false);
-	/* DESCRIPTION: List of output variables for the volume solution */
-	AddEnumListOption("OUTPUT_VARS_VOL", nOutput_Vars_Vol, Output_Vars_Vol, Output_Vars_Map);
 	/* DESCRIPTION: Output residual info to solution/restart file */
 	AddSpecialOption("WRT_RESIDUALS", Wrt_Residuals, SetBoolOption, false);
   /* DESCRIPTION: Output the rind layers in the solution files */
@@ -855,13 +849,13 @@ CConfig::CConfig(char case_filename[200], unsigned short val_software, unsigned 
     	- ROTATION ( x_Orig, y_Orig, z_Orig, x_End, y_End, z_End )
     	- OBSTACLE ( Center, Bump size )
       - SPHERICAL ( ControlPoint_Index, Theta_Disp, R_Disp )
-      - FFD_CONTROL_POINT ( Chunk ID, i_Ind, j_Ind, k_Ind, x_Disp, y_Disp, z_Disp )
-    	- FFD_DIHEDRAL_ANGLE ( Chunk ID, x_Orig, y_Orig, z_Orig, x_End, y_End, z_End )
-    	- FFD_TWIST_ANGLE ( Chunk ID, x_Orig, y_Orig, z_Orig, x_End, y_End, z_End )
-    	- FFD_ROTATION ( Chunk ID, x_Orig, y_Orig, z_Orig, x_End, y_End, z_End )
-    	- FFD_CAMBER ( Chunk ID, i_Ind, j_Ind )
-    	- FFD_THICKNESS ( Chunk ID, i_Ind, j_Ind )
-    	- FFD_VOLUME ( Chunk ID, i_Ind, j_Ind ) */
+      - FFD_CONTROL_POINT ( FFDBox ID, i_Ind, j_Ind, k_Ind, x_Disp, y_Disp, z_Disp )
+    	- FFD_DIHEDRAL_ANGLE ( FFDBox ID, x_Orig, y_Orig, z_Orig, x_End, y_End, z_End )
+    	- FFD_TWIST_ANGLE ( FFDBox ID, x_Orig, y_Orig, z_Orig, x_End, y_End, z_End )
+    	- FFD_ROTATION ( FFDBox ID, x_Orig, y_Orig, z_Orig, x_End, y_End, z_End )
+    	- FFD_CAMBER ( FFDBox ID, i_Ind, j_Ind )
+    	- FFD_THICKNESS ( FFDBox ID, i_Ind, j_Ind )
+    	- FFD_VOLUME ( FFDBox ID, i_Ind, j_Ind ) */
 	AddDVParamOption("DV_PARAM", nDV, ParamDV, Design_Variable);
 	/* DESCRIPTION: Hold the grid fixed in a region */
 	AddSpecialOption("HOLD_GRID_FIXED", Hold_GridFixed, SetBoolOption, false);
@@ -871,8 +865,6 @@ CConfig::CConfig(char case_filename[200], unsigned short val_software, unsigned 
 	AddArrayOption("HOLD_GRID_FIXED_COORD", 6, Hold_GridFixed_Coord, default_vec_6d);
 	/* DESCRIPTION: Grid deformation technique */
 	AddEnumOption("GRID_DEFORM_METHOD", Kind_GridDef_Method, Deform_Map, "SPRING");
-	/* DESCRIPTION: Maximum error in the grid deformation */
-	AddScalarOption("GRID_DEFORM_ERROR", GridDef_Error, 1E-14);
 	/* DESCRIPTION: Visualize the deformation */
 	AddSpecialOption("VISUALIZE_DEFORMATION", Visualize_Deformation, SetBoolOption, false);
 	/* DESCRIPTION: Number of iterations for FEA mesh deformation (surface deformation increments) */
@@ -926,7 +918,6 @@ CConfig::CConfig(char case_filename[200], unsigned short val_software, unsigned 
 			it = param.find(option_name);
 			if (it != param.end()) {
 				param[option_name]->SetValue(option_value);
-				//				cout << option_name << ": value = "; param[option_name]->WriteValue();
 			} else {
 				if ( !GetPython_Option(option_name) && (rank == MASTER_NODE) )
 					cout << "WARNING: unrecognized option in the config. file: " << option_name << "." << endl;
@@ -2631,7 +2622,7 @@ void CConfig::SetOutput(unsigned short val_software, unsigned short val_izone) {
 	case SU2_SOL: cout << "|   |_____/   \\____/  |____|  Suite (Solution Exporting Code)           |" << endl; break;
 	}
 
-	cout << "|                             Release 2.0.5                             |" << endl;
+	cout << "|                             Release 2.0.6                             |" << endl;
 	cout <<"-------------------------------------------------------------------------" << endl;
 
 	cout << endl <<"------------------------ Physical case definition -----------------------" << endl;
@@ -2706,13 +2697,6 @@ void CConfig::SetOutput(unsigned short val_software, unsigned short val_izone) {
 					else
 						cout << "Continuous RANS adjoint equations." << endl;
 				}
-				else if (Kind_Adjoint == HYBRID) {
-					if (Frozen_Visc)
-						cout << "Hybrid RANS adjoint equations with no turbulent -> mean flow coupling." << endl;
-					else
-						cout << "Hybrid RANS adjoint equations." << endl;
-				}
-
 
 				break;
 			case LIN_EULER: cout << "Linearized Euler equations." << endl; break;
@@ -2836,7 +2820,6 @@ void CConfig::SetOutput(unsigned short val_software, unsigned short val_izone) {
       case SPRING: cout << "Grid deformation using a classical spring method." << endl; break;
       case FEA: cout << "Grid deformation using a linear elasticity method." << endl; break;
 		}
-		cout << "Convergence criteria of the linear solver: "<< GridDef_Error <<"."<<endl;
 
 		if (Design_Variable[0] != NO_DEFORMATION && Design_Variable[0] != SURFACE_FILE) {
 			if (Hold_GridFixed == YES) cout << "Hold some regions of the mesh fixed (hardcode implementation)." <<endl;
@@ -2966,9 +2949,9 @@ void CConfig::SetOutput(unsigned short val_software, unsigned short val_izone) {
 		case DRAG_COEFFICIENT: cout << "Drag objective function." << endl; break;
 		case LIFT_COEFFICIENT: cout << "Lift objective function." << endl; break;
 		case SIDEFORCE_COEFFICIENT: cout << "Side force objective function." << endl; break;
-		case MOMENT_X_COEFFICIENT: cout << "Pitching moment objective function." << endl; break;
-		case MOMENT_Y_COEFFICIENT: cout << "Rolling moment objective function." << endl; break;
-		case MOMENT_Z_COEFFICIENT: cout << "Yawing moment objective function." << endl; break;
+		case MOMENT_X_COEFFICIENT: cout << "Mx objective function." << endl; break;
+		case MOMENT_Y_COEFFICIENT: cout << "My objective function." << endl; break;
+		case MOMENT_Z_COEFFICIENT: cout << "Mz objective function." << endl; break;
 		case EFFICIENCY: cout << "Efficiency objective function." << endl; break;
 		case PRESSURE_COEFFICIENT: cout << "Pressure objective function." << endl; break;
 		case EQUIVALENT_AREA:
@@ -3234,23 +3217,14 @@ void CConfig::SetOutput(unsigned short val_software, unsigned short val_izone) {
 			case EULER_IMPLICIT:
 				cout << "Euler implicit method for the flow equations." << endl;
 				switch (Kind_Linear_Solver) {
-				case LU_SGS:
-					cout << "A LU - symmetric Gauss-Seidel iteration is used for solving the linear system." << endl;
-					break;
-				case SYM_GAUSS_SEIDEL:
-					cout << "A symmetric Gauss-Seidel method is used for solving the linear system." << endl;
-					cout << "Convergence criteria of the linear solver: "<< Linear_Solver_Error <<"."<<endl;
-					cout << "Max number of iterations: "<< Linear_Solver_Iter <<"."<<endl;
-					cout << "Relaxation coefficient: "<< Linear_Solver_Relax <<"."<<endl;
-					break;
 				case BCGSTAB:
-					cout << "A precond. BCGSTAB is used for solving the linear system." << endl;
+					cout << "BCGSTAB is used for solving the linear system." << endl;
 					cout << "Convergence criteria of the linear solver: "<< Linear_Solver_Error <<"."<<endl;
 					cout << "Max number of iterations: "<< Linear_Solver_Iter <<"."<<endl;
 					cout << "Relaxation coefficient: "<< Linear_Solver_Relax <<"."<<endl;
 					break;
-				case GMRES:
-					cout << "A precond. GMRES is used for solving the linear system." << endl;
+				case FGMRES:
+					cout << "FGMRES is used for solving the linear system." << endl;
 					cout << "Convergence criteria of the linear solver: "<< Linear_Solver_Error <<"."<<endl;
 					cout << "Max number of iterations: "<< Linear_Solver_Iter <<"."<<endl;
 					cout << "Relaxation coefficient: "<< Linear_Solver_Relax <<"."<<endl;

@@ -2,7 +2,7 @@
  * \file variable_structure.inl
  * \brief In-Line subroutines of the <i>variable_structure.hpp</i> file.
  * \author Aerospace Design Laboratory (Stanford University) <http://su2.stanford.edu>.
- * \version 2.0.5
+ * \version 2.0.6
  *
  * Stanford University Unstructured (SU2) Code
  * Copyright (C) 2012 Aerospace Design Laboratory
@@ -189,7 +189,7 @@ inline double *CVariable::GetIntBoundary_Jump(void) { return NULL; }
 
 inline double CVariable::GetEddyViscosity(void) { return 0; }
 
-inline void CVariable::SetGammaEff(void) { }
+inline void CVariable::ComputeGammaEff(void) { }
 
 inline double CVariable::GetGammaEff(void) { }
 
@@ -253,7 +253,7 @@ inline void CVariable::SetObjFuncSource(double *val_ObjFuncSource) { }
 
 inline void CVariable::SetIntBoundary_Jump(double *val_IntBoundary_Jump) { }
 
-inline void CVariable::SetEddyViscosity(unsigned short val_Kind_Turb_Model, CVariable *Turb_Solution) { }
+inline void CVariable::SetEddyViscosity(unsigned short val_Kind_Turb_Model, CVariable *TurbVariable) { }
 
 inline void CVariable::SetEnthalpy(void) { }
 
@@ -562,6 +562,8 @@ inline bool CNSVariable::SetPressure(double Gamma, double turb_ke) {
 inline double CTransLMVariable::GetIntermittency() { return Solution[0]; }
 
 inline void CTransLMVariable::SetGammaSep(double gamma_sep_in) {gamma_sep = gamma_sep_in;}
+
+inline double CTransLMVariable::GetGammaEff(void) {return gamma_eff;}
 
 inline double *CAdjEulerVariable::GetForceProj_Vector(void) { return ForceProj_Vector; }
 
