@@ -376,10 +376,11 @@ void CTransLMSolver::Viscous_Residual(CGeometry *geometry, CSolver **solver_cont
   }
 }
 
-void CTransLMSolver::Source_Residual(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics, CNumerics *second_numerics,
-																			 CConfig *config, unsigned short iMesh) {
-  unsigned long iPoint;
+void CTransLMSolver::Source_Residual(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics, CNumerics *second_numerics, CConfig *config, unsigned short iMesh) {
+  unsigned long iPoint, iVertex;
+  unsigned short iMarker;
   double gamma_sep;
+  bool boundary;
 
   //cout << "Setting Trans residual -AA " << endl;
   cout << "\nBeginAA" << endl;
@@ -405,9 +406,12 @@ void CTransLMSolver::Source_Residual(CGeometry *geometry, CSolver **solver_conta
 		
 		/*--- Set distance to the surface ---*/
 		numerics->SetDistance(geometry->node[iPoint]->GetWallDistance(), 0.0);
-		
+    
+		/*--- Set distance to the surface ---*/
+		boundary = geometry->node[iPoint]->GetBoundary();
+    
 		/*--- Compute the source term ---*/
-		numerics->ComputeResidual_TransLM(Residual, Jacobian_i, NULL, config, gamma_sep);
+		numerics->ComputeResidual_TransLM(Residual, Jacobian_i, gamma_sep, config, boundary);
 		
     /*-- Store gamma_sep in variable class --*/
     node[iPoint]->SetGammaSep(gamma_sep);
@@ -415,9 +419,23 @@ void CTransLMSolver::Source_Residual(CGeometry *geometry, CSolver **solver_conta
 
 		/*--- Subtract residual and the jacobian ---*/
 		LinSysRes.SubtractBlock(iPoint, Residual);
-    Jacobian.SubtractBlock(iPoint,iPoint,Jacobian_i);
+    Jacobian.SubtractBlock(iPoint, iPoint, Jacobian_i);
 
 	}
+ 
+//  for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
+//    if ((config->GetMarker_All_Boundary(iMarker) == INLET_FLOW) ||
+//        (config->GetMarker_All_Boundary(iMarker) == OUTLET_FLOW) ||
+//        (config->GetMarker_All_Boundary(iMarker) == FAR_FIELD)){
+//      for (iVertex = 0; iVertex < geometry->nVertex[iMarker]; iVertex++) {
+//        iPoint = geometry->vertex[iMarker][iVertex]->GetNode();
+//        numerics->SetConservative(solver_container[FLOW_SOL]->node[iPoint]->GetSolution(), NULL);
+//        numerics->SetPrimVarGradient(solver_container[FLOW_SOL]->node[iPoint]->GetGradient_Primitive(), NULL);
+//        LinSysRes.SetBlock_Zero(iPoint, 1);
+//      }
+//    }
+//	}
+  
 }
 
 void CTransLMSolver::Source_Template(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics,
@@ -440,7 +458,7 @@ void CTransLMSolver::BC_HeatFlux_Wall(CGeometry *geometry, CSolver **solver_cont
       Solution[0] = 0.0;
       Solution[1] = 0.0;
       node[iPoint]->SetSolution_Old(Solution);
-      Set_Residual_Zero(iPoint);
+      LinSysRes.SetBlock_Zero(iPoint);
 
       /*--- includes 1 in the diagonal ---*/
       for (iVar = 0; iVar < nVar; iVar++) {
@@ -724,8 +742,8 @@ unsigned short iVar, iDim, Kind_Inlet = config->GetKind_Inlet();
                                 geometry->node[iPoint]->GetGridVel());
       
       /*--- Compute the residual using an upwind scheme ---*/
-      conv_numerics->SetResidual(Residual, Jacobian_i, Jacobian_j, config);
-      AddResidual(iPoint, Residual);
+      conv_numerics->ComputeResidual(Residual, Jacobian_i, Jacobian_j, config);
+      LinSysRes.AddBlock(iPoint, Residual);
       
       /*--- Jacobian contribution for implicit integration ---*/
       Jacobian.AddBlock(iPoint, iPoint, Jacobian_i);
@@ -828,9 +846,9 @@ void CTransLMSolver::BC_Outlet(CGeometry *geometry, CSolver **solver_container, 
                                 geometry->node[iPoint]->GetGridVel());
       
       /*--- Compute the residual using an upwind scheme ---*/
-      conv_numerics->SetResidual(Residual, Jacobian_i, Jacobian_j, config);
-      AddResidual(iPoint, Residual);
-      
+      conv_numerics->ComputeResidual(Residual, Jacobian_i, Jacobian_j, config);
+      LinSysRes.AddBlock(iPoint, Residual);
+
       /*--- Jacobian contribution for implicit integration ---*/
       Jacobian.AddBlock(iPoint, iPoint, Jacobian_i);
       

@@ -328,7 +328,7 @@ CSourcePieceWise_TransLM::CSourcePieceWise_TransLM(unsigned short val_nDim, unsi
 
 CSourcePieceWise_TransLM::~CSourcePieceWise_TransLM(void) { }
 
-void CSourcePieceWise_TransLM::ComputeResidual_TransLM(double *val_residual, double **val_Jacobian_i, double **val_Jacobian_j, CConfig *config, double &gamma_sep) {
+void CSourcePieceWise_TransLM::ComputeResidual_TransLM(double *val_residual, double **val_Jacobian_i, double &gamma_sep, CConfig *config, bool boundary) {
 	//************************************************//
 	// Please do not delete //SU2_CPP2C comment lines //
 	//************************************************//
@@ -453,26 +453,36 @@ void CSourcePieceWise_TransLM::ComputeResidual_TransLM(double *val_residual, dou
     
 		/*-- Fixed-point iterations to solve REth correlation --*/
 		f_lambda = 1.;
-		for (int iter=0; iter<10; iter++) {
-			if (tu <= 1.3) {
-				re_theta = f_lambda * (1173.51-589.428*tu+0.2196/(tu*tu));
-			} else {
-				re_theta = 331.5 * f_lambda*pow(tu-0.5658,-0.671);
-			}
-			re_theta = max(re_theta, re_theta_lim);
-      
-			theta  = re_theta * Laminar_Viscosity_i / (U_i[0]*Velocity_Mag);
-      
-			lambda = U_i[0]*theta*theta*du_ds / Laminar_Viscosity_i;
-			lambda = min(max(-0.1,lambda),0.1);
-      
-			if (lambda<=0.0) {
-				f_lambda = 1. - (-12.986*lambda - 123.66*lambda*lambda -
-                         405.689*lambda*lambda*lambda)*exp(-pow(2./3*tu,1.5));
-			} else {
-				f_lambda = 1. + 0.275*(1.-exp(-35.*lambda))*exp(-2.*tu);
-			}
-		}
+    
+    if  (boundary) {
+      re_theta = 1399.83;
+      lambda = 0.0;
+      f_lambda = 0.0;
+    }
+    else {
+      for (int iter=0; iter<10; iter++) {
+        
+        
+        if (tu <= 1.3) {
+          re_theta = f_lambda * (1173.51-589.428*tu+0.2196/(tu*tu));
+        } else {
+          re_theta = 331.5 * f_lambda*pow(tu-0.5658,-0.671);
+        }
+        re_theta = max(re_theta, re_theta_lim);
+        
+        theta  = re_theta * Laminar_Viscosity_i / (U_i[0]*Velocity_Mag);
+        
+        lambda = U_i[0]*theta*theta*du_ds / Laminar_Viscosity_i;
+        lambda = min(max(-0.1,lambda),0.1);
+        
+        if (lambda<=0.0) {
+          f_lambda = 1. - (-12.986*lambda - 123.66*lambda*lambda -
+                           405.689*lambda*lambda*lambda)*exp(-pow(2./3*tu,1.5));
+        } else {
+          f_lambda = 1. + 0.275*(1.-exp(-35.*lambda))*exp(-2.*tu);
+        }
+      }
+    }
     
 		/*-- Calculate blending function f_theta --*/
 		time_scale = 500.0*Laminar_Viscosity_i/(U_i[0]*Velocity_Mag*Velocity_Mag);

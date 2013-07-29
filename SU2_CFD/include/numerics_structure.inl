@@ -60,7 +60,7 @@ inline void CNumerics::GetEq_Rxn_Coefficients(double **EqnRxnConstants, CConfig 
 														
 inline void CNumerics::ComputeResidual(double *val_residual, double **val_Jacobian_i, CConfig *config) { }
 
-inline void CNumerics::ComputeResidual_TransLM(double *val_residual, double **val_Jacobian_i, double **val_Jacobian_j, CConfig *config, double &gamma_sep) {}
+inline void CNumerics::ComputeResidual_TransLM(double *val_residual, double **val_Jacobian_i, double &gamma_sep, CConfig *config, bool boundary) {}
 
 inline void CNumerics::ComputeResidual_Axisymmetric(double *val_residual, CConfig *config) { }
 
