@@ -481,7 +481,7 @@ void CTransLMSolver::BC_Far_Field(CGeometry *geometry, CSolver **solver_containe
 
 }
 
-void CTransLMSolution::BC_Inlet(CGeometry *geometry, CSolver **solver_container, CNumerics *conv_numerics, CNumerics *visc_numerics, CConfig *config, unsigned short val_marker) {
+void CTransLMSolver::BC_Inlet(CGeometry *geometry, CSolver **solver_container, CNumerics *conv_numerics, CNumerics *visc_numerics, CConfig *config, unsigned short val_marker) {
 
 unsigned short iVar, iDim, Kind_Inlet = config->GetKind_Inlet();
   unsigned long iVertex, iPoint, Point_Normal;
@@ -771,7 +771,7 @@ unsigned short iVar, iDim, Kind_Inlet = config->GetKind_Inlet();
   //cin.get();
 }
 
-void CTransLMSolution::BC_Outlet(CGeometry *geometry, CSolver **solver_container, CNumerics *conv_numerics, CNumerics *visc_numerics,
+void CTransLMSolver::BC_Outlet(CGeometry *geometry, CSolver **solver_container, CNumerics *conv_numerics, CNumerics *visc_numerics,
                                  CConfig *config, unsigned short val_marker) {
   unsigned long iPoint, iVertex, Point_Normal;
   unsigned short iVar, iDim;
