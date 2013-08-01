@@ -276,6 +276,7 @@ void COutput::SetTecplot_ASCII(CConfig *config, CGeometry *geometry, unsigned sh
     
   }
   
+  
   /*--- Write the header ---*/
   Tecplot_File << "ZONE ";
 	if (config->GetUnsteady_Simulation() && config->GetWrt_Unsteady())
