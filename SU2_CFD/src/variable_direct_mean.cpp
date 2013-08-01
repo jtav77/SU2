@@ -315,7 +315,15 @@ void CEulerVariable::SetPrimVar_Compressible(CConfig *config) {
 	SetVelocity2();                               // Compute the modulus of the velocity.
   check_dens = (Solution[0] < 0.0);             // Check the density
 	check_press = SetPressure(Gamma);							// Requires Velocity2 computation.
-	check_sos = SetSoundSpeed(Gamma);             // Requires pressure computation.
+	
+    /*--- Overwrite the new computed pressure ---*/
+    //if (config->GetExtIter()==0) {
+        //Primitive[nDim+1] = config->GetPressure_FreeStream();
+    //}
+    
+    /*--- Overwrite the new computed pressure ---*/
+    
+    check_sos = SetSoundSpeed(Gamma);             // Requires pressure computation.
 	check_temp = SetTemperature(Gas_Constant);		// Requires pressure computation.
   
   /*--- Check that the solution has a physical meaning ---*/

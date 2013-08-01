@@ -292,6 +292,41 @@ CEulerSolver::CEulerSolver(CGeometry *geometry, CConfig *config, unsigned short 
    the solution from the finest mesh to the coarser levels. ---*/
 	if (!restart || geometry->GetFinestMGLevel() == false || nZone > 1) {
 
+//        /*--- Read in Vortex Distribution ---*/
+//        std::string line;
+//        std::ifstream file;
+//        double x_temp,y_temp,lambda_temp,eta_temp;
+//        std::vector<double> x0,y0,lambda,eta;
+//        file.open("vortex_distribution.txt");
+//        /*--- In case there is no vortex file ---*/
+//		if (file.fail()) {
+//			cout << "There is no vortex data file!!" << endl;
+//			cout << "Press any key to exit..." << endl;
+//			cin.get(); exit(1);
+//		}
+//        
+//        // Ignore line containing the header
+//        getline(file,line);
+//        // Read in the information of the vortices (xloc, yloc, lambda(strenght), eta(size,gradient))
+//        while (file.good())
+//        {
+//            getline(file,line);
+//            std::stringstream ss(line);
+//            if (line.size() != 0) { //ignore blank lines if they exist.
+//                ss >> x_temp;
+//                ss >> y_temp;
+//                ss >> lambda_temp;
+//                ss >> eta_temp;
+//                x0.push_back(x_temp);
+//                y0.push_back(y_temp);
+//                lambda.push_back(lambda_temp);
+//                eta.push_back(eta_temp);
+//            }
+//        }
+//        file.close();
+//        // number of vortices
+//        unsigned int nVortex = x0.size();
+        
 		/*--- Restart the solution from infinity ---*/
 		for (iPoint = 0; iPoint < nPoint; iPoint++) {
 //            double x = geometry->node[iPoint]->GetCoord()[0]; // x-location of the node.
@@ -311,7 +346,86 @@ CEulerSolver::CEulerSolver(CGeometry *geometry, CConfig *config, unsigned short 
 //                //Energy_Inf = E;
 //                node[iPoint] = new CEulerVariable(Density_Inf, vel, E, nDim, nVar, config);
 //            } else
+            
+            /*--- Use vortex distribution ---*/
+//            double x = geometry->node[iPoint]->GetCoord()[0]; // x-location of the node.
+//            double y = geometry->node[iPoint]->GetCoord()[1]; // y-location of the node.
+//            
+//            double u_vort = 0;
+//            double v_vort = 0;
+//            double T_vort = 0;
+//            
+//            for (unsigned int i=0; i<nVortex; i++) {
+//                double r2 = pow(x-x0[i], 2) + pow(y-y0[i], 2);
+//                u_vort = u_vort - lambda[i]/(2*PI_NUMBER)*(y-y0[i]) * exp(eta[i]*(1-r2));
+//                v_vort = v_vort + lambda[i]/(2*PI_NUMBER)*(x-x0[i]) * exp(eta[i]*(1-r2));
+//                T_vort = T_vort - (Gamma_Minus_One)/(16*eta[i]*Gamma*PI_NUMBER*PI_NUMBER)*pow(lambda[i],2)
+//                                                                    * exp(2.0*eta[i]*(1-r2));
+//                
+//            }
+//            
+//            // Update the infinity values with the vortex values
+//            double u = Velocity_Inf[0]+u_vort;
+//            double v = Velocity_Inf[1]+v_vort;
+//            
+//            // Use isentropic relations to get the density and pressure from the T_vort
+//            // First compute total quantities from freestream values
+//            double T = config->GetTemperature_FreeStream();
+//            double rho = GetDensity_Inf();
+//            double p = GetPressure_Inf();
+//            double Mach = config->GetMach_FreeStreamND();
+//            double T0 = T * (1+Gamma_Minus_One/2.0*Mach*Mach);
+//            double p0 = p * pow(1+Gamma_Minus_One/2.0*Mach*Mach, Gamma/Gamma_Minus_One);
+//            double rho0 = rho * pow(1+Gamma_Minus_One/2.0*Mach*Mach, 1.0/Gamma_Minus_One);
+//            
+//            // Find the modified pressure and density by modifying the temperature
+//            rho = rho0 * pow(T0/(T + T_vort),-1.0/Gamma_Minus_One);
+//            p   = p0   * pow(T0/(T + T_vort),-Gamma/Gamma_Minus_One);
+//            
+//            double mag_v2 = u*u + v*v;
+//            double E = p/((Gamma_Minus_One)*rho) + 0.5*mag_v2;
+//            
+//            // Update the infinity values for initialization
+//            double *vel;
+//            double velo[2] = {u,v};
+//            vel = velo;
+//            
+//            node[iPoint] = new CEulerVariable(rho, vel, E, nDim, nVar, config);
+
+            
+//            /*--- Use cosine as in CAA papers ---*/
+//            double x = geometry->node[iPoint]->GetCoord()[0]; // x-location of the node.
+//            double y = geometry->node[iPoint]->GetCoord()[1]; // y-location of the node.
+//            
+//            double cons = 2.0;
+//            
+//            double u = Velocity_Inf[0] + cons*Velocity_Inf[0]*cos(2*PI_NUMBER/80.0*x);
+//            double v = Velocity_Inf[1];
+//            double velo[2] = {u,0.0};
+//            double mag_v2 = u*u + v*v;
+//            double rho = GetPressure_Inf()/( (Gamma_Minus_One)* (Energy_Inf - 0.5*mag_v2) );
+//            node[iPoint] = new CEulerVariable(rho, velo, Energy_Inf, nDim, nVar, config);
+            
+            
+              /*--- Step Probando Francisco ---*/
+            double x = geometry->node[iPoint]->GetCoord()[0]; // x-location of the node.
+            double y = geometry->node[iPoint]->GetCoord()[1]; // y-location of the node.
+            if (x<=0.0) {
+                double u0 = 1.1*Velocity_Inf[0];
+                double v0 = 0.0;
+                double mag_v2 = u0*u0 + v0*v0;
+                double rho0 = GetPressure_Inf()/( (Gamma_Minus_One)* (Energy_Inf - 0.5*mag_v2) );
+                double velo[2] = {u0,v0};
+                node[iPoint] = new CEulerVariable(rho0, velo, Energy_Inf, nDim, nVar, config);
+                double p0 = (( (Gamma_Minus_One)* (Energy_Inf - 0.5*mag_v2) ) * rho0 )/GetPressure_Inf();
+                std::cout << "Pressure ratio = " << p0 << std::endl;
+            }
+            else {
+                
                 node[iPoint] = new CEulerVariable(Density_Inf, Velocity_Inf, Energy_Inf, nDim, nVar, config);
+            }
+            
+            //node[iPoint] = new CEulerVariable(Density_Inf, Velocity_Inf, Energy_Inf, nDim, nVar, config);
         }
 	}
 
@@ -3913,38 +4027,58 @@ void CEulerSolver::BC_Far_Field(CGeometry *geometry, CSolver **solver_container,
                 /*---------- Implement the Gust in here ----------*/
                 
                 
-                double x = geometry->node[iPoint]->GetCoord()[0]; // x-location of the node on the farfield boundary
-                // Check if point belongs to the inflow (x<0)
-                if (x < 0.0) {
-                    
-                    /*--- Variables for the Gust ---*/
-                    double N = config->GetnExtIter(); // number of unsteady time steps
-                    double dt = config->GetDelta_UnstTime();
-                    double T = N*dt; // Total simulation time
-                    double Tbegin = 0.0*T; //controls when the gust begins
-                    unsigned long ExtIter = config->GetExtIter();
-                    double t = (ExtIter+1)*dt; // physical time // maybe not +1
-                    
-                    if (t > Tbegin) {
-                        // Adjust the free stream values by adjusting the Mach number
-                        double gust_factor = 1.2;
-                        double Mach = gust_factor*config->GetMach_FreeStreamND();
-                        double alpha = config->GetAoA()*PI_NUMBER/180.0;
-                        double u = cos(alpha)*Mach*sqrt(Gamma*Gas_Constant*config->GetTemperature_FreeStream());
-                        double v = sin(alpha)*Mach*sqrt(Gamma*Gas_Constant*config->GetTemperature_FreeStream());
-                        double mag_v = sqrt(u*u + v*v);
-                        double E = GetPressure_Inf()/((Gamma_Minus_One)*GetDensity_Inf()) + 0.5*mag_v*mag_v;
-                        //double E = 101311/((Gamma_Minus_One)*GetDensity_Inf()) + 0.5*mag_v*mag_v;
+//                double x = geometry->node[iPoint]->GetCoord()[0]; // x-location of the node on the farfield boundary
+//                // Check if point belongs to the inflow (x<0)
+//                if (x < 0.0) {
+//                    
+//                    /*--- Variables for the Gust ---*/
+//                    double N = config->GetnExtIter(); // number of unsteady time steps
+//                    double dt = config->GetDelta_UnstTime();
+//                    double T = N*dt; // Total simulation time
+//                    double Tbegin = 0.0*T; //controls when the gust begins
+//                    unsigned long ExtIter = config->GetExtIter();
+//                    double t = (ExtIter+1)*dt; // physical time // maybe not +1
+//                    
+//                    if (t > Tbegin) {
+//                        // Adjust the free stream values by adjusting the Mach number
+//                        double gust_factor = 1.2;
+//                        double Mach = gust_factor*config->GetMach_FreeStreamND();
+//                        double alpha = config->GetAoA()*PI_NUMBER/180.0;
+//                        double u = cos(alpha)*Mach*sqrt(Gamma*Gas_Constant*config->GetTemperature_FreeStream());
+//                        double v = sin(alpha)*Mach*sqrt(Gamma*Gas_Constant*config->GetTemperature_FreeStream());
+//                        double mag_v = sqrt(u*u + v*v);
+//                        double E = GetPressure_Inf()/((Gamma_Minus_One)*GetDensity_Inf()) + 0.5*mag_v*mag_v;
+//                        //double E = 101311/((Gamma_Minus_One)*GetDensity_Inf()) + 0.5*mag_v*mag_v;
+//
+//                        // Set the conservative variables.
+//                        U_infty[1] = GetDensity_Inf()*u;
+//                        U_infty[2] = GetDensity_Inf()*v;
+//                        U_infty[nDim+1] = GetDensity_Inf()*E;
+//                        
+//                    }
+//                
+//                    
+//                }
+                
+                double x = geometry->node[iPoint]->GetCoord()[0]; // x-location of the node.
+                double y = geometry->node[iPoint]->GetCoord()[1]; // y-location of the node.
+                if (x<0.0) {
+                    double u0 = 1.1*Velocity_Inf[0];
+                    double v0 = 0.0;
+                    double mag_v2 = u0*u0 + v0*v0;
+                    double rho0 = GetPressure_Inf()/( (Gamma_Minus_One)* (Energy_Inf - 0.5*mag_v2) );
+                    // Set the conservative variables.
+                    U_infty[0] = rho0;
+                    U_infty[1] = rho0*u0;
+                    U_infty[2] = rho0*v0;
+                    U_infty[nDim+1] = Energy_Inf*rho0;
 
-                        // Set the conservative variables.
-                        U_infty[1] = GetDensity_Inf()*u;
-                        U_infty[2] = GetDensity_Inf()*v;
-                        U_infty[nDim+1] = GetDensity_Inf()*E;
-                        
-                    }
+                }
                 
                     
-                }
+                
+                
+                
                 
                 /*-------------------------------------------------*/
             
