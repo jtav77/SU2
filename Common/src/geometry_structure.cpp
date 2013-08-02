@@ -1342,11 +1342,13 @@ void CPhysicalGeometry::CGNS_Format(CConfig *config, string val_mesh_filename, u
   
   /*--- Throw error if not in serial mode. ---*/
 #ifndef NO_MPI
-  cout << "Parallel support with CGNS format not yet implemented!!" << endl;
-  cout << "Press any key to exit..." << endl;
-  cin.get();
-  MPI::COMM_WORLD.Abort(1);
-  MPI::Finalize();
+  if (size > 1) {
+    cout << "Parallel support with CGNS format not yet implemented!!" << endl;
+    cout << "Press any key to exit..." << endl;
+    cin.get();
+    MPI::COMM_WORLD.Abort(1);
+    MPI::Finalize();
+  }
 #endif
   
   /*--- Check whether the supplied file is truly a CGNS file. ---*/
@@ -2762,85 +2764,109 @@ void CPhysicalGeometry::SetEsuP(void) {
 		}
 }
 
-void CPhysicalGeometry::SetWall_Distance(CConfig *config) {
+void CPhysicalGeometry::ComputeWall_Distance(CConfig *config) {
+  
 	double *coord, dist2, dist;
 	unsigned short iDim, iMarker;
 	unsigned long iPoint, iVertex, nVertex_SolidWall;
+  
+  int rank = MASTER_NODE;
+#ifndef NO_MPI
+	rank = MPI::COMM_WORLD.Get_rank();
+#endif  
+	if (rank == MASTER_NODE)
+		cout << "Computing wall distances." << endl;
 
 #ifdef NO_MPI
 
-	/*--- identification of the wall points and coordinates ---*/
+	/*--- Compute the total number of nodes on no-slip boundaries ---*/
+  
 	nVertex_SolidWall = 0;
 	for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++)
 		if ((config->GetMarker_All_Boundary(iMarker) == HEAT_FLUX) ||
-        (config->GetMarker_All_Boundary(iMarker) == ISOTHERMAL) ||
-        (config->GetMarker_All_Boundary(iMarker) == EULER_WALL))
+        (config->GetMarker_All_Boundary(iMarker) == ISOTHERMAL))
 			nVertex_SolidWall += GetnVertex(iMarker);
 
-	/*--- Allocate vector of boundary coordinates ---*/
+	/*--- Allocate an array to hold boundary node coordinates ---*/
+  
 	double **Coord_bound;
 	Coord_bound = new double* [nVertex_SolidWall];
 	for (iVertex = 0; iVertex < nVertex_SolidWall; iVertex++)
 		Coord_bound[iVertex] = new double [nDim];
 
-	/*--- Get coordinates of the points of the surface ---*/
+	/*--- Retrieve and store the coordinates of the no-slip boundary nodes ---*/
+  
 	nVertex_SolidWall = 0;
-	for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++)
+	for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
 		if ((config->GetMarker_All_Boundary(iMarker) == HEAT_FLUX) ||
-        (config->GetMarker_All_Boundary(iMarker) == ISOTHERMAL) ||
-        (config->GetMarker_All_Boundary(iMarker) == EULER_WALL))
+        (config->GetMarker_All_Boundary(iMarker) == ISOTHERMAL))
 			for (iVertex = 0; iVertex < GetnVertex(iMarker); iVertex++) {
 				iPoint = vertex[iMarker][iVertex]->GetNode();
 				for (iDim = 0; iDim < nDim; iDim++)
 					Coord_bound[nVertex_SolidWall][iDim] = node[iPoint]->GetCoord(iDim);
 				nVertex_SolidWall++;
 			}
-
-	/*--- Get coordinates of the points and compute distances to the surface ---*/
+  }
+  
+	/*--- Loop over all interior mesh nodes and compute the distances to each
+   of the no-slip boundary nodes. Store the minimum distance to the wall for
+   each interior mesh node. ---*/
+  
 	for (iPoint = 0; iPoint < GetnPoint(); iPoint++) {
 		coord = node[iPoint]->GetCoord();
-		/*--- Compute the squared distance to the rest of points, and get the minimum ---*/
 		dist = 1E20;
 		for (iVertex = 0; iVertex < nVertex_SolidWall; iVertex++) {
 			dist2 = 0.0;
 			for (iDim = 0; iDim < nDim; iDim++)
-				dist2 += (coord[iDim]-Coord_bound[iVertex][iDim])*(coord[iDim]-Coord_bound[iVertex][iDim]);
+				dist2 += (coord[iDim]-Coord_bound[iVertex][iDim])
+        *(coord[iDim]-Coord_bound[iVertex][iDim]);
 			if (dist2 < dist) dist = dist2;
 		}
 		node[iPoint]->SetWallDistance(sqrt(dist));
 	}
 
-	/*--- Deallocate vector of boundary coordinates ---*/
+	/*--- Deallocate the vector of boundary coordinates. ---*/
+  
 	for (iVertex = 0; iVertex < nVertex_SolidWall; iVertex++)
 		delete[] Coord_bound[iVertex];
 	delete[] Coord_bound;
 
-	cout << "Wall distance computation." << endl;
 
 #else 
+  
+  /*--- Variables and buffers needed for MPI ---*/
+  
 	int iProcessor;
-
-	/*--- Count the number of wall nodes in the whole mesh ---*/
-	unsigned long nLocalVertex_NS = 0, nGlobalVertex_NS = 0, MaxLocalVertex_NS = 0;
-
 	int nProcessor = MPI::COMM_WORLD.Get_size();
 
-	unsigned long *Buffer_Send_nVertex = new unsigned long [1];
+	unsigned long nLocalVertex_NS = 0, nGlobalVertex_NS = 0, MaxLocalVertex_NS = 0;
+	unsigned long *Buffer_Send_nVertex    = new unsigned long [1];
 	unsigned long *Buffer_Receive_nVertex = new unsigned long [nProcessor];
 
+  /*--- Count the total number of nodes on no-slip boundaries within the
+   local partition. ---*/
+  
 	for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++)
 		if ((config->GetMarker_All_Boundary(iMarker) == HEAT_FLUX) ||
-        (config->GetMarker_All_Boundary(iMarker) == ISOTHERMAL) ||
-        (config->GetMarker_All_Boundary(iMarker) == EULER_WALL))
+        (config->GetMarker_All_Boundary(iMarker) == ISOTHERMAL))
 			nLocalVertex_NS += GetnVertex(iMarker);
 
+  /*--- Communicate to all processors the total number of no-slip boundary 
+   nodes, the maximum number of no-slip boundary nodes on any single single 
+   partition, and the number of no-slip nodes on each partition. ---*/
+  
 	Buffer_Send_nVertex[0] = nLocalVertex_NS;	
+	MPI::COMM_WORLD.Allreduce(&nLocalVertex_NS, &nGlobalVertex_NS,  1,
+                            MPI::UNSIGNED_LONG, MPI::SUM);
+	MPI::COMM_WORLD.Allreduce(&nLocalVertex_NS, &MaxLocalVertex_NS, 1,
+                            MPI::UNSIGNED_LONG, MPI::MAX);
+	MPI::COMM_WORLD.Allgather(Buffer_Send_nVertex, 1, MPI::UNSIGNED_LONG,
+                            Buffer_Receive_nVertex, 1, MPI::UNSIGNED_LONG);
 
-	MPI::COMM_WORLD.Allreduce(&nLocalVertex_NS, &nGlobalVertex_NS, 1, MPI::UNSIGNED_LONG, MPI::SUM); 	
-	MPI::COMM_WORLD.Allreduce(&nLocalVertex_NS, &MaxLocalVertex_NS, 1, MPI::UNSIGNED_LONG, MPI::MAX); 	
-	MPI::COMM_WORLD.Allgather(Buffer_Send_nVertex, 1, MPI::UNSIGNED_LONG, Buffer_Receive_nVertex, 1, MPI::UNSIGNED_LONG);
-
-	double *Buffer_Send_Coord = new double [MaxLocalVertex_NS*nDim];
+  /*--- Create and initialize to zero some buffers to hold the coordinates 
+   of the boundary nodes that are communicated from each partition (all-to-all). ---*/
+  
+	double *Buffer_Send_Coord    = new double [MaxLocalVertex_NS*nDim];
 	double *Buffer_Receive_Coord = new double [nProcessor*MaxLocalVertex_NS*nDim];
 	unsigned long nBuffer = MaxLocalVertex_NS*nDim;
 
@@ -2848,25 +2874,28 @@ void CPhysicalGeometry::SetWall_Distance(CConfig *config) {
 		for (iDim = 0; iDim < nDim; iDim++)
 			Buffer_Send_Coord[iVertex*nDim+iDim] = 0.0;
 
+  /*--- Retrieve and store the coordinates of the no-slip boundary nodes on
+   the local partition and broadcast them to all partitions. ---*/
+  
 	nVertex_SolidWall = 0;
 	for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++)
 		if ((config->GetMarker_All_Boundary(iMarker) == HEAT_FLUX) ||
-        (config->GetMarker_All_Boundary(iMarker) == ISOTHERMAL) ||
-        (config->GetMarker_All_Boundary(iMarker) == EULER_WALL))
+        (config->GetMarker_All_Boundary(iMarker) == ISOTHERMAL))
 			for (iVertex = 0; iVertex < GetnVertex(iMarker); iVertex++) {
 				iPoint = vertex[iMarker][iVertex]->GetNode();
 				for (iDim = 0; iDim < nDim; iDim++)
 					Buffer_Send_Coord[nVertex_SolidWall*nDim+iDim] = node[iPoint]->GetCoord(iDim);
 				nVertex_SolidWall++;
 			}
+	MPI::COMM_WORLD.Allgather(Buffer_Send_Coord, nBuffer, MPI::DOUBLE,
+                            Buffer_Receive_Coord, nBuffer, MPI::DOUBLE);
 
-	MPI::COMM_WORLD.Allgather(Buffer_Send_Coord, nBuffer, MPI::DOUBLE, Buffer_Receive_Coord, nBuffer, MPI::DOUBLE);
-
-	/*--- Get coordinates of the points and compute distances to the surface ---*/
+  /*--- Loop over all interior mesh nodes on the local partition and compute 
+   the distances to each of the no-slip boundary nodes in the entire mesh. 
+   Store the minimum distance to the wall for each interior mesh node. ---*/
+  
 	for (iPoint = 0; iPoint < GetnPoint(); iPoint++) {
 		coord = node[iPoint]->GetCoord();
-
-		/*--- Compute the squared distance and get the minimum ---*/
 		dist = 1E20;
 		for (iProcessor = 0; iProcessor < nProcessor; iProcessor++)
 			for (iVertex = 0; iVertex < Buffer_Receive_nVertex[iProcessor]; iVertex++) {
@@ -2879,15 +2908,12 @@ void CPhysicalGeometry::SetWall_Distance(CConfig *config) {
 		node[iPoint]->SetWallDistance(sqrt(dist));
 	}
 
+  /*--- Deallocate the buffers needed for the MPI communication. ---*/
+  
 	delete[] Buffer_Send_Coord;
 	delete[] Buffer_Receive_Coord;
 	delete[] Buffer_Send_nVertex;
 	delete[] Buffer_Receive_nVertex;
-
-	int rank = MPI::COMM_WORLD.Get_rank();
-
-	if (rank == MASTER_NODE)
-		cout << "Wall distance computation." << endl;
 
 #endif
 
@@ -4558,67 +4584,87 @@ void CPhysicalGeometry::SetBoundTecPlot (CConfig *config, char mesh_filename[200
 
 	/*--- Compute the total number of elements ---*/
 	Total_nElem_Bound = 0;
-	for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++)
+	for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
 		if (config->GetMarker_All_Plotting(iMarker) == YES) {
 			Total_nElem_Bound += nElem_Bound[iMarker];
 		}
+  }
 
 	/*--- Open the tecplot file ---*/
 	Tecplot_File.open(mesh_filename, ios::out);
 	Tecplot_File << "TITLE = \"Visualization of the surface grid\"" << endl;
 
-	/*--- Write the header of the file ---*/
-	if (nDim == 2) {
-		Tecplot_File << "VARIABLES = \"x\",\"y\" " << endl;
-		Tecplot_File << "ZONE NODES= "<< nPointSurface <<", ELEMENTS= "<< Total_nElem_Bound <<", DATAPACKING=POINT, ZONETYPE=FELINESEG"<< endl;
-	}
-	if (nDim == 3) {
-		Tecplot_File << "VARIABLES = \"x\",\"y\",\"z\" " << endl;	
-		Tecplot_File << "ZONE NODES= "<< nPointSurface <<", ELEMENTS= "<< Total_nElem_Bound <<", DATAPACKING=POINT, ZONETYPE=FEQUADRILATERAL"<< endl;
-	}
-
-	/*--- Only write the coordiantes of the points that are on the surfaces ---*/
-	if (nDim == 3) {
-		for(iPoint = 0; iPoint < nPoint; iPoint++)
-			if (node[iPoint]->GetBoundary()) {
-				for(Coord_i = 0; Coord_i < nDim-1; Coord_i++)
-					Tecplot_File << node[iPoint]->GetCoord(Coord_i) << "\t";
-				Tecplot_File << node[iPoint]->GetCoord(nDim-1) << "\n";
-			}
-	}
-	else {
-		for(iPoint = 0; iPoint < nPoint; iPoint++)
-			if (node[iPoint]->GetBoundary()){
-				for(Coord_i = 0; Coord_i < nDim; Coord_i++)
-					Tecplot_File << node[iPoint]->GetCoord(Coord_i) << "\t";
-				Tecplot_File << "\n";
-			}
-	}
-
-	/*--- Write the cells using the new numbering ---*/
-	for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) 
-		if (config->GetMarker_All_Plotting(iMarker) == YES) 
-			for(iElem = 0; iElem < nElem_Bound[iMarker]; iElem++) {
-				if (nDim == 2) {
-					Tecplot_File << PointSurface[bound[iMarker][iElem]->GetNode(0)]+1 << "\t"
-							<< PointSurface[bound[iMarker][iElem]->GetNode(1)]+1 << endl;
-				}
-				if (nDim == 3) {
-					if (bound[iMarker][iElem]->GetnNodes() == 3) {
-						Tecplot_File << PointSurface[bound[iMarker][iElem]->GetNode(0)]+1 << "\t" 
-								<< PointSurface[bound[iMarker][iElem]->GetNode(1)]+1 << "\t"
-								<< PointSurface[bound[iMarker][iElem]->GetNode(2)]+1 << "\t"
-								<< PointSurface[bound[iMarker][iElem]->GetNode(2)]+1 << endl;
-					}
-					if (bound[iMarker][iElem]->GetnNodes() == 4) {
-						Tecplot_File << PointSurface[bound[iMarker][iElem]->GetNode(0)]+1 << "\t" 
-								<< PointSurface[bound[iMarker][iElem]->GetNode(1)]+1 << "\t"
-								<< PointSurface[bound[iMarker][iElem]->GetNode(2)]+1 << "\t"
-								<< PointSurface[bound[iMarker][iElem]->GetNode(3)]+1 << endl;
-					}
-				}
-			}
-
+  if (Total_nElem_Bound != 0) {
+    
+    /*--- Write the header of the file ---*/
+    if (nDim == 2) {
+      Tecplot_File << "VARIABLES = \"x\",\"y\" " << endl;
+      Tecplot_File << "ZONE NODES= "<< nPointSurface <<", ELEMENTS= "<< Total_nElem_Bound <<", DATAPACKING=POINT, ZONETYPE=FELINESEG"<< endl;
+    }
+    if (nDim == 3) {
+      Tecplot_File << "VARIABLES = \"x\",\"y\",\"z\" " << endl;
+      Tecplot_File << "ZONE NODES= "<< nPointSurface <<", ELEMENTS= "<< Total_nElem_Bound <<", DATAPACKING=POINT, ZONETYPE=FEQUADRILATERAL"<< endl;
+    }
+    
+    /*--- Only write the coordiantes of the points that are on the surfaces ---*/
+    if (nDim == 3) {
+      for(iPoint = 0; iPoint < nPoint; iPoint++)
+        if (node[iPoint]->GetBoundary()) {
+          for(Coord_i = 0; Coord_i < nDim-1; Coord_i++)
+            Tecplot_File << node[iPoint]->GetCoord(Coord_i) << " ";
+          Tecplot_File << node[iPoint]->GetCoord(nDim-1) << "\n";
+        }
+    }
+    else {
+      for(iPoint = 0; iPoint < nPoint; iPoint++)
+        if (node[iPoint]->GetBoundary()){
+          for(Coord_i = 0; Coord_i < nDim; Coord_i++)
+            Tecplot_File << node[iPoint]->GetCoord(Coord_i) << " ";
+          Tecplot_File << "\n";
+        }
+    }
+    
+    /*--- Write the cells using the new numbering ---*/
+    for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++)
+      if (config->GetMarker_All_Plotting(iMarker) == YES)
+        for(iElem = 0; iElem < nElem_Bound[iMarker]; iElem++) {
+          if (nDim == 2) {
+            Tecplot_File << PointSurface[bound[iMarker][iElem]->GetNode(0)]+1 << " "
+            << PointSurface[bound[iMarker][iElem]->GetNode(1)]+1 << endl;
+          }
+          if (nDim == 3) {
+            if (bound[iMarker][iElem]->GetnNodes() == 3) {
+              Tecplot_File << PointSurface[bound[iMarker][iElem]->GetNode(0)]+1 << " "
+              << PointSurface[bound[iMarker][iElem]->GetNode(1)]+1 << " "
+              << PointSurface[bound[iMarker][iElem]->GetNode(2)]+1 << " "
+              << PointSurface[bound[iMarker][iElem]->GetNode(2)]+1 << endl;
+            }
+            if (bound[iMarker][iElem]->GetnNodes() == 4) {
+              Tecplot_File << PointSurface[bound[iMarker][iElem]->GetNode(0)]+1 << " "
+              << PointSurface[bound[iMarker][iElem]->GetNode(1)]+1 << " "
+              << PointSurface[bound[iMarker][iElem]->GetNode(2)]+1 << " "
+              << PointSurface[bound[iMarker][iElem]->GetNode(3)]+1 << endl;
+            }
+          }
+        }
+  }
+  else {
+    /*--- No elements in the surface ---*/
+    if (nDim == 2) {
+      Tecplot_File << "VARIABLES = \"x\",\"y\" " << endl;
+      Tecplot_File << "ZONE NODES= 1, ELEMENTS= 1, DATAPACKING=POINT, ZONETYPE=FELINESEG"<< endl;
+      Tecplot_File << "0.0 0.0"<< endl;
+      Tecplot_File << "1 1"<< endl;
+    }
+    if (nDim == 3) {
+      Tecplot_File << "VARIABLES = \"x\",\"y\",\"z\" " << endl;
+      Tecplot_File << "ZONE NODES= 1, ELEMENTS= 1, DATAPACKING=POINT, ZONETYPE=FEQUADRILATERAL"<< endl;
+      Tecplot_File << "0.0 0.0 0.0"<< endl;
+      Tecplot_File << "1 1 1 1"<< endl;
+    }
+  }
+  
+  
 	/*--- Dealocate memory and close the file ---*/
 	delete[] PointSurface;
 	Tecplot_File.close();
