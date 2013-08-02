@@ -408,22 +408,41 @@ CEulerSolver::CEulerSolver(CGeometry *geometry, CConfig *config, unsigned short 
             
             
               /*--- Step Probando Francisco ---*/
+//            double x = geometry->node[iPoint]->GetCoord()[0]; // x-location of the node.
+//            double y = geometry->node[iPoint]->GetCoord()[1]; // y-location of the node.
+//            if (x<=0.0) {
+//                double u0 = 1.1*Velocity_Inf[0];
+//                double v0 = 0.0;
+//                double mag_v2 = u0*u0 + v0*v0;
+//                double rho0 = GetPressure_Inf()/( (Gamma_Minus_One)* (Energy_Inf - 0.5*mag_v2) );
+//                double velo[2] = {u0,v0};
+//                node[iPoint] = new CEulerVariable(rho0, velo, Energy_Inf, nDim, nVar, config);
+//                double p0 = (( (Gamma_Minus_One)* (Energy_Inf - 0.5*mag_v2) ) * rho0 )/GetPressure_Inf();
+//                std::cout << "Pressure ratio = " << p0 << std::endl;
+//            }
+//            else {
+//                
+//                node[iPoint] = new CEulerVariable(Density_Inf, Velocity_Inf, Energy_Inf, nDim, nVar, config);
+//            }
+            
+            /*--- Compute the flow solution using the level set value. ---*/
             double x = geometry->node[iPoint]->GetCoord()[0]; // x-location of the node.
-            double y = geometry->node[iPoint]->GetCoord()[1]; // y-location of the node.
-            if (x<=0.0) {
-                double u0 = 1.1*Velocity_Inf[0];
-                double v0 = 0.0;
-                double mag_v2 = u0*u0 + v0*v0;
-                double rho0 = GetPressure_Inf()/( (Gamma_Minus_One)* (Energy_Inf - 0.5*mag_v2) );
-                double velo[2] = {u0,v0};
-                node[iPoint] = new CEulerVariable(rho0, velo, Energy_Inf, nDim, nVar, config);
-                double p0 = (( (Gamma_Minus_One)* (Energy_Inf - 0.5*mag_v2) ) * rho0 )/GetPressure_Inf();
-                std::cout << "Pressure ratio = " << p0 << std::endl;
-            }
-            else {
-                
-                node[iPoint] = new CEulerVariable(Density_Inf, Velocity_Inf, Energy_Inf, nDim, nVar, config);
-            }
+            double epsilon = 2.5;//config->GetFreeSurface_Thickness();
+            double Heaviside = 0.0;
+            if (x < -epsilon) Heaviside = 1.0;
+            if (fabs(x) <= epsilon) Heaviside = 1.0 - (0.5*(1.0+(x/epsilon)+(1.0/PI_NUMBER)*sin(PI_NUMBER*x/epsilon)));
+            if (x > epsilon) Heaviside = 0.0;
+            
+            double lambda = 1/1.1;
+            double u0 = (lambda + (1.0 - lambda)*Heaviside)*Velocity_Inf[0]*1.1;
+            double v0 = 0.0;
+            double mag_v2 = u0*u0 + v0*v0;
+            double rho0 = GetPressure_Inf()/( (Gamma_Minus_One)* (Energy_Inf - 0.5*mag_v2) );
+            double velo[2] = {u0,v0};
+            node[iPoint] = new CEulerVariable(rho0, velo, Energy_Inf, nDim, nVar, config);
+            //double p0 = (( (Gamma_Minus_One)* (Energy_Inf - 0.5*mag_v2) ) * rho0 )/GetPressure_Inf();
+
+            
             
             //node[iPoint] = new CEulerVariable(Density_Inf, Velocity_Inf, Energy_Inf, nDim, nVar, config);
         }
