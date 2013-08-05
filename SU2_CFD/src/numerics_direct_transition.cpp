@@ -503,27 +503,27 @@ void CSourcePieceWise_TransLM::ComputeResidual_TransLM(double *val_residual, dou
 		val_residual[1] = c_theta*U_i[0]/time_scale *  (1.-f_theta) * (re_theta-TransVar_i[1]);
     
 	  //SU2_CPP2C COMMENT START
-    cout << "val_res0: "  << val_residual[0]      << endl;
-    cout << "val_res1: "  << val_residual[1]      << endl;
-    cout << "dist_i: "    << dist_i               << endl;
-    cout << "re_v: "      << re_v                 << endl;
-    cout << "c_a1: "      << c_a1                 << endl;
-    cout << "strain: "    << strain               << endl;
-    cout << "primgrad10: "<< PrimVar_Grad_i[1][0] << endl;
-    cout << "primgrad11: "<< PrimVar_Grad_i[1][1] << endl;
-    cout << "primgrad20: "<< PrimVar_Grad_i[2][0] << endl;
-    cout << "primgrad21: "<< PrimVar_Grad_i[2][1] << endl;
-    cout << "f_onset: "   << f_onset              << endl;
-    cout << "TransVar0: " << TransVar_i[0]        << endl;
-    cout << "prod: "      << prod                 << endl;
-    cout << "c_a2: "      << c_a2                 << endl;
-    cout << "Vorticity: " << Vorticity            << endl;
-    cout << "f_turb: "    << f_turb               << endl;
-    cout << "des: "       << des                  << endl;
-    cout << "du_ds: "     << du_ds                << endl;
-    cout << "r_t:    "    << r_t                  << endl;
-    cout << "rey_tc: "    << rey_tc               << endl;
-    cout << "re_theta: "  << re_theta             << endl;
+    //cout << "val_res0: "  << val_residual[0]      << endl;
+    //cout << "val_res1: "  << val_residual[1]      << endl;
+    //cout << "dist_i: "    << dist_i               << endl;
+    //cout << "re_v: "      << re_v                 << endl;
+    //cout << "c_a1: "      << c_a1                 << endl;
+    //cout << "strain: "    << strain               << endl;
+    //cout << "primgrad10: "<< PrimVar_Grad_i[1][0] << endl;
+    //cout << "primgrad11: "<< PrimVar_Grad_i[1][1] << endl;
+    //cout << "primgrad20: "<< PrimVar_Grad_i[2][0] << endl;
+    //cout << "primgrad21: "<< PrimVar_Grad_i[2][1] << endl;
+    //cout << "f_onset: "   << f_onset              << endl;
+    //cout << "TransVar0: " << TransVar_i[0]        << endl;
+    //cout << "prod: "      << prod                 << endl;
+    //cout << "c_a2: "      << c_a2                 << endl;
+    //cout << "Vorticity: " << Vorticity            << endl;
+    //cout << "f_turb: "    << f_turb               << endl;
+    //cout << "des: "       << des                  << endl;
+    //cout << "du_ds: "     << du_ds                << endl;
+    //cout << "r_t:    "    << r_t                  << endl;
+    //cout << "rey_tc: "    << rey_tc               << endl;
+    //cout << "re_theta: "  << re_theta             << endl;
     
 		/*-- Calculate term for separation correction --*/
 		f_reattach = exp(-pow(0.05*r_t,4));
