@@ -383,9 +383,9 @@ void CTransLMSolver::Source_Residual(CGeometry *geometry, CSolver **solver_conta
   bool boundary;
 
   //cout << "Setting Trans residual -AA " << endl;
-  cout << "\nBeginAA" << endl;
+//  cout << "\nBeginAA" << endl;
 	for (iPoint = 0; iPoint < geometry->GetnPointDomain(); iPoint++) {
-    cout << "\niPoint: " << iPoint << endl;
+ //   cout << "\niPoint: " << iPoint << endl;
 		
 		/*--- Conservative variables w/o reconstruction ---*/
 		numerics->SetConservative(solver_container[FLOW_SOL]->node[iPoint]->GetSolution(), NULL);
