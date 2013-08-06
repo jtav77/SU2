@@ -383,7 +383,7 @@ void CTransLMSolver::Source_Residual(CGeometry *geometry, CSolver **solver_conta
   bool boundary;
 
   //cout << "Setting Trans residual -AA " << endl;
-//  cout << "\nBeginAA" << endl;
+////  cout << "\nBeginAA" << endl;
 	for (iPoint = 0; iPoint < geometry->GetnPointDomain(); iPoint++) {
  //   cout << "\niPoint: " << iPoint << endl;
 		
@@ -422,19 +422,6 @@ void CTransLMSolver::Source_Residual(CGeometry *geometry, CSolver **solver_conta
     Jacobian.SubtractBlock(iPoint, iPoint, Jacobian_i);
 
 	}
- 
-//  for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
-//    if ((config->GetMarker_All_Boundary(iMarker) == INLET_FLOW) ||
-//        (config->GetMarker_All_Boundary(iMarker) == OUTLET_FLOW) ||
-//        (config->GetMarker_All_Boundary(iMarker) == FAR_FIELD)){
-//      for (iVertex = 0; iVertex < geometry->nVertex[iMarker]; iVertex++) {
-//        iPoint = geometry->vertex[iMarker][iVertex]->GetNode();
-//        numerics->SetConservative(solver_container[FLOW_SOL]->node[iPoint]->GetSolution(), NULL);
-//        numerics->SetPrimVarGradient(solver_container[FLOW_SOL]->node[iPoint]->GetGradient_Primitive(), NULL);
-//        LinSysRes.SetBlock_Zero(iPoint, 1);
-//      }
-//    }
-//	}
   
 }
 
@@ -896,5 +883,4 @@ void CTransLMSolver::BC_Outlet(CGeometry *geometry, CSolver **solver_container, 
 
 void CTransLMSolver::BC_Sym_Plane(CGeometry *geometry, CSolver **solver_container, CNumerics *conv_numerics, CNumerics *visc_numerics,
 																 CConfig *config, unsigned short val_marker) {
-BC_HeatFlux_Wall(geometry, solver_container, conv_numerics, visc_numerics, config, val_marker);
 }

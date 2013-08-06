@@ -150,21 +150,45 @@ CAvgGrad_TransLM::~CAvgGrad_TransLM(void) {
 }
 
 void CAvgGrad_TransLM::ComputeResidual(double *val_residual, double **Jacobian_i, double **Jacobian_j, CConfig *config) {
-  
+
+  //************************************************//
+  // Please do not delete //SU2_CPP2C comment lines //
+  //************************************************//
+
+  double TransVar_id[nVar], TransVar_jd[nVar], val_residuald[nVar];
+  //SU2_CPP2C START CAvgGrad_TransLM::SetResidual
+  //SU2_CPP2C CALL_LIST START
+  //SU2_CPP2C INVARS *TransVar_i *TransVar_j
+  //SU2_CPP2C OUTVARS *val_residual
+  //SU2_CPP2C VARS DOUBLE *U_i *U_j
+  //SU2_CPP2C VARS DOUBLE Laminar_Viscosity_i Eddy_Viscosity_i
+  //SU2_CPP2C VARS DOUBLE Laminar_Viscosity_j Eddy_Viscosity_j
+  //SU2_CPP2C VARS DOUBLE *Coord_i *Coord_j *Normal
+  //SU2_CPP2C VARS DOUBLE **ConsVar_Grad_i **ConsVar_Grad_j **TransVar_Grad_i **TransVar_Grad_j
+  //SU2_CPP2C CALL_LIST END
+
+  //SU2_CPP2C DEFINE nDim nVar
+
+  //SU2_CPP2C DECL_LIST START
+  //SU2_CPP2C VARS DOUBLE MATRIX SIZE=nDim Edge_Vector Normal Proj_Mean_GradTransVar_Kappa
+  //SU2_CPP2C VARS DOUBLE MATRIX SIZE=nDim SIZE=nVar Mean_GradTransVar
+  //SU2_CPP2C VARS DOUBLE SCALAR Density_i Density_j dist_ij_2 proj_vector_ij 
+  //SU2_CPP2C VARS INT SCALAR iDim iVar
+  //SU2_CPP2C DECL_LIST END
   double Density_Grad_i[nDim], Density_Grad_j[nDim], Conservative_Grad_i[nDim], Conservative_Grad_j[nDim];
   double Primitive_Grad_i[nDim], Primitive_Grad_j[nDim];
-  
+
   /*--- Intermediate values for combining viscosities ---*/
   double Inter_Viscosity_i, Inter_Viscosity_j, REth_Viscosity_i, REth_Viscosity_j, Inter_Viscosity_Mean, REth_Viscosity_Mean;
-  
+
   /*--- Model constants---*/
   double sigmaf       = 1.0;
   double sigma_thetat = 2.0;
-  
+
   /*--- Get density ---*/
-  Density_i = U_i[0];
+  Density_i = U_i[0]; 
   Density_j = U_j[0];
-  
+
   /*--- Construct combinations of viscosity ---*/
   Inter_Viscosity_i    = (Laminar_Viscosity_i+Eddy_Viscosity_i/sigmaf);
   Inter_Viscosity_j    = (Laminar_Viscosity_j+Eddy_Viscosity_j/sigmaf);
@@ -172,22 +196,22 @@ void CAvgGrad_TransLM::ComputeResidual(double *val_residual, double **Jacobian_i
   REth_Viscosity_i     = sigma_thetat*(Laminar_Viscosity_i+Eddy_Viscosity_i);
   REth_Viscosity_j     = sigma_thetat*(Laminar_Viscosity_j+Eddy_Viscosity_j);
   REth_Viscosity_Mean  = 0.5*(REth_Viscosity_i+REth_Viscosity_j);
-  
-	/*--- Compute vector going from iPoint to jPoint ---*/
-	dist_ij_2 = 0; proj_vector_ij = 0;
-	for (iDim = 0; iDim < nDim; iDim++) {
-		Edge_Vector[iDim] = Coord_j[iDim]-Coord_i[iDim];
-		dist_ij_2 += Edge_Vector[iDim]*Edge_Vector[iDim];
-		proj_vector_ij += Edge_Vector[iDim]*Normal[iDim];
-	}
-	proj_vector_ij = proj_vector_ij/dist_ij_2; // to normalize vectors
-  
-	/*--- Mean gradient approximation ---*/
-	for (iVar = 0; iVar < nVar; iVar++) {
-		Proj_Mean_GradTransVar_Kappa[iVar] = 0.0;
-		// Proj_Mean_GradTransVar_Edge[iVar] = 0.0;
-		for (iDim = 0; iDim < nDim; iDim++) {
-      
+
+  /*--- Compute vector going from iPoint to jPoint ---*/
+  dist_ij_2 = 0; proj_vector_ij = 0;
+  for (iDim = 0; iDim < nDim; iDim++) {
+    Edge_Vector[iDim] = Coord_j[iDim]-Coord_i[iDim];
+    dist_ij_2 += Edge_Vector[iDim]*Edge_Vector[iDim];
+    proj_vector_ij += Edge_Vector[iDim]*Normal[iDim];
+  }
+  proj_vector_ij = proj_vector_ij/dist_ij_2; // to normalize vectors
+
+  /*--- Mean gradient approximation ---*/
+  for (iVar = 0; iVar < nVar; iVar++) {
+    Proj_Mean_GradTransVar_Kappa[iVar] = 0.0;
+    // Proj_Mean_GradTransVar_Edge[iVar] = 0.0;
+    for (iDim = 0; iDim < nDim; iDim++) {
+
       /* -- Compute primitive grad using chain rule -- */
       Density_Grad_i[iDim]      = ConsVar_Grad_i[0][iDim];
       Density_Grad_j[iDim]      = ConsVar_Grad_j[0][iDim];
@@ -195,24 +219,151 @@ void CAvgGrad_TransLM::ComputeResidual(double *val_residual, double **Jacobian_i
       Conservative_Grad_j[iDim] = TransVar_Grad_j[iVar][iDim];
       Primitive_Grad_i[iDim]    = 1./Density_i*(Conservative_Grad_i[iDim]-TransVar_i[iVar]*Density_Grad_i[iDim]);
       Primitive_Grad_j[iDim]    = 1./Density_j*(Conservative_Grad_j[iDim]-TransVar_j[iVar]*Density_Grad_j[iDim]);
-      
+
       /*--- Compute the average primitive gradient and project it in the normal direction ---*/
       Mean_GradTransVar[iVar][iDim] = 0.5*(Primitive_Grad_i[iDim] + Primitive_Grad_j[iDim]);
-			Proj_Mean_GradTransVar_Kappa[iVar] += Mean_GradTransVar[iVar][iDim]*Normal[iDim];
-		}
-	}
+      Proj_Mean_GradTransVar_Kappa[iVar] += Mean_GradTransVar[iVar][iDim]*Normal[iDim];
+    }
+  }
+
+  val_residual[0] = Inter_Viscosity_Mean*Proj_Mean_GradTransVar_Kappa[0];
+  val_residual[1] = REth_Viscosity_Mean*Proj_Mean_GradTransVar_Kappa[1];
   
-	val_residual[0] = Inter_Viscosity_Mean*Proj_Mean_GradTransVar_Kappa[0];
-	val_residual[1] = REth_Viscosity_Mean*Proj_Mean_GradTransVar_Kappa[1];
-  
-	/*--- For Jacobians -> Use of TSL approx. to compute derivatives of the gradients ---*/
-	if (implicit) {
-		Jacobian_i[0][0] = (0.5*Proj_Mean_GradTransVar_Kappa[0]-Inter_Viscosity_Mean*proj_vector_ij);
-		Jacobian_j[0][0] = (0.5*Proj_Mean_GradTransVar_Kappa[0]+Inter_Viscosity_Mean*proj_vector_ij);
-		Jacobian_i[1][1] = (0.5*Proj_Mean_GradTransVar_Kappa[1]-REth_Viscosity_Mean*proj_vector_ij);
-		Jacobian_j[1][1] = (0.5*Proj_Mean_GradTransVar_Kappa[1]+REth_Viscosity_Mean*proj_vector_ij);
-	}
-  
+  //SU2_CPP2C END CAvgGrad_TransLM::SetResidual
+
+  /*--- For Jacobians -> Use of TSL approx. to compute derivatives of the gradients ---*/
+  if (implicit) {
+
+    TransVar_id[0] = 1.0; TransVar_id[1] = 0.0;
+    TransVar_jd[0] = 0.0; TransVar_jd[1] = 0.0;
+    ComputeResidual_d(TransVar_i, TransVar_id,  TransVar_j,  TransVar_jd,  val_residual,  val_residuald);
+    Jacobian_i[0][0] = val_residuald[0];
+    Jacobian_i[1][0] = val_residuald[1];
+
+    TransVar_id[0] = 0.0; TransVar_id[1] = 0.0;
+    TransVar_jd[0] = 1.0; TransVar_jd[1] = 0.0;
+    ComputeResidual_d(TransVar_i, TransVar_id,  TransVar_j,  TransVar_jd,  val_residual,  val_residuald);
+    Jacobian_j[0][0] = val_residuald[0];
+    Jacobian_j[1][0] = val_residuald[1];
+
+    TransVar_id[0] = 0.0; TransVar_id[1] = 1.0;
+    TransVar_jd[0] = 0.0; TransVar_jd[1] = 0.0;
+    ComputeResidual_d(TransVar_i, TransVar_id,  TransVar_j,  TransVar_jd,  val_residual,  val_residuald);
+    Jacobian_i[0][1] = val_residuald[0];
+    Jacobian_i[1][1] = val_residuald[1];
+
+    TransVar_id[0] = 0.0; TransVar_id[1] = 0.0;
+    TransVar_jd[0] = 0.0; TransVar_jd[1] = 1.0;
+    ComputeResidual_d(TransVar_i, TransVar_id,  TransVar_j,  TransVar_jd,  val_residual,  val_residuald);
+    Jacobian_j[0][1] = val_residuald[0];
+    Jacobian_j[1][1] = val_residuald[1];
+
+    //Jacobian_i[0][0] = (0.5*Proj_Mean_GradTransVar_Kappa[0]-Inter_Viscosity_Mean*proj_vector_ij);
+    //Jacobian_j[0][0] = (0.5*Proj_Mean_GradTransVar_Kappa[0]+Inter_Viscosity_Mean*proj_vector_ij);
+    //Jacobian_i[1][1] = (0.5*Proj_Mean_GradTransVar_Kappa[1]-REth_Viscosity_Mean*proj_vector_ij);
+    //Jacobian_j[1][1] = (0.5*Proj_Mean_GradTransVar_Kappa[1]+REth_Viscosity_Mean*proj_vector_ij);
+
+    ///*-- Zero out other terms of Jacobian --*/
+    //Jacobian_i[1][0] = 0.0;
+    //Jacobian_j[1][0] = 0.0;
+    //Jacobian_i[0][1] = 0.0;
+    //Jacobian_j[0][1] = 0.0;
+  }
+
+}
+
+void CAvgGrad_TransLM::ComputeResidual_d(double *TransVar_i, double *TransVar_id, double *TransVar_j, double *TransVar_jd, double *val_residual, double *val_residuald)
+{
+//SU2_INSERT START
+    double Density_Grad_i[nDim], Density_Grad_j[nDim], 
+    Conservative_Grad_i[nDim], Conservative_Grad_j[nDim];
+    double Density_Grad_id[nDim], Density_Grad_jd[nDim], 
+    Conservative_Grad_id[nDim], Conservative_Grad_jd[nDim];
+    double Primitive_Grad_i[nDim], Primitive_Grad_j[nDim];
+    double Primitive_Grad_id[nDim], Primitive_Grad_jd[nDim];
+    /*--- Intermediate values for combining viscosities ---*/
+    double Inter_Viscosity_i, Inter_Viscosity_j, REth_Viscosity_i, 
+    REth_Viscosity_j, Inter_Viscosity_Mean, REth_Viscosity_Mean;
+    /*--- Model constants---*/
+    double sigmaf = 1.0;
+    double sigma_thetat = 2.0;
+    double Edge_Vectord[nDim];
+    double Proj_Mean_GradTransVar_Kappad[nDim];
+    double Mean_GradTransVard[nDim][nVar];
+    int ii2;
+    int ii1;
+    /*--- Get density ---*/
+    Density_i = U_i[0];
+    Density_j = U_j[0];
+    /*--- Construct combinations of viscosity ---*/
+    Inter_Viscosity_i = Laminar_Viscosity_i + Eddy_Viscosity_i/sigmaf;
+    Inter_Viscosity_j = Laminar_Viscosity_j + Eddy_Viscosity_j/sigmaf;
+    Inter_Viscosity_Mean = 0.5*(Inter_Viscosity_i+Inter_Viscosity_j);
+    REth_Viscosity_i = sigma_thetat*(Laminar_Viscosity_i+Eddy_Viscosity_i);
+    REth_Viscosity_j = sigma_thetat*(Laminar_Viscosity_j+Eddy_Viscosity_j);
+    REth_Viscosity_Mean = 0.5*(REth_Viscosity_i+REth_Viscosity_j);
+    /*--- Compute vector going from iPoint to jPoint ---*/
+    dist_ij_2 = 0;
+    proj_vector_ij = 0;
+    for (iDim = 0; iDim < nDim; ++iDim) {
+        Edge_Vectord[iDim] = 0.0;
+        Edge_Vector[iDim] = Coord_j[iDim] - Coord_i[iDim];
+        dist_ij_2 += Edge_Vector[iDim]*Edge_Vector[iDim];
+        proj_vector_ij += Edge_Vector[iDim]*Normal[iDim];
+    }
+    proj_vector_ij = proj_vector_ij/dist_ij_2;
+    for (ii1 = 0; ii1 < nDim; ++ii1)
+        for (ii2 = 0; ii2 < nVar; ++ii2)
+            Mean_GradTransVard[ii1][ii2] = 0.0;
+    for (ii1 = 0; ii1 < nDim; ++ii1)
+        Primitive_Grad_id[ii1] = 0.0;
+    for (ii1 = 0; ii1 < nDim; ++ii1)
+        Primitive_Grad_jd[ii1] = 0.0;
+    for (ii1 = 0; ii1 < nDim; ++ii1)
+        Proj_Mean_GradTransVar_Kappad[ii1] = 0.0;
+    /*--- Mean gradient approximation ---*/
+    // to normalize vectors
+    for (iVar = 0; iVar < nVar; ++iVar) {
+        Proj_Mean_GradTransVar_Kappad[iVar] = 0.0;
+        Proj_Mean_GradTransVar_Kappa[iVar] = 0.0;
+        // Proj_Mean_GradTransVar_Edge[iVar] = 0.0;
+        for (iDim = 0; iDim < nDim; ++iDim) {
+            /* -- Compute primitive grad using chain rule -- */
+            Density_Grad_id[iDim] = 0.0;
+            Density_Grad_i[iDim] = ConsVar_Grad_i[0][iDim];
+            Density_Grad_jd[iDim] = 0.0;
+            Density_Grad_j[iDim] = ConsVar_Grad_j[0][iDim];
+            Conservative_Grad_id[iDim] = 0.0;
+            Conservative_Grad_i[iDim] = TransVar_Grad_i[iVar][iDim];
+            Conservative_Grad_jd[iDim] = 0.0;
+            Conservative_Grad_j[iDim] = TransVar_Grad_j[iVar][iDim];
+            Primitive_Grad_id[iDim] = -(Density_Grad_i[iDim]*TransVar_id[iVar]
+                /Density_i);
+            Primitive_Grad_i[iDim] = 1./Density_i*(Conservative_Grad_i[iDim]-
+                TransVar_i[iVar]*Density_Grad_i[iDim]);
+            Primitive_Grad_jd[iDim] = -(Density_Grad_j[iDim]*TransVar_jd[iVar]
+                /Density_j);
+            Primitive_Grad_j[iDim] = 1./Density_j*(Conservative_Grad_j[iDim]-
+                TransVar_j[iVar]*Density_Grad_j[iDim]);
+            /*--- Compute the average primitive gradient and project it in the normal direction ---
+            */
+            Mean_GradTransVard[iVar][iDim] = 0.5*(Primitive_Grad_id[iDim]+
+                Primitive_Grad_jd[iDim]);
+            Mean_GradTransVar[iVar][iDim] = 0.5*(Primitive_Grad_i[iDim]+
+                Primitive_Grad_j[iDim]);
+            Proj_Mean_GradTransVar_Kappad[iVar] = 
+                Proj_Mean_GradTransVar_Kappad[iVar] + Normal[iDim]*
+                Mean_GradTransVard[iVar][iDim];
+            Proj_Mean_GradTransVar_Kappa[iVar] += Mean_GradTransVar[iVar][iDim
+            ]*Normal[iDim];
+        }
+    }
+    val_residuald[0] = Inter_Viscosity_Mean*Proj_Mean_GradTransVar_Kappad[0];
+    val_residual[0] = Inter_Viscosity_Mean*Proj_Mean_GradTransVar_Kappa[0];
+    val_residuald[1] = REth_Viscosity_Mean*Proj_Mean_GradTransVar_Kappad[1];
+    val_residual[1] = REth_Viscosity_Mean*Proj_Mean_GradTransVar_Kappa[1];
+
+//SU2_INSERT END
 }
 
 CAvgGradCorrected_TransLM::CAvgGradCorrected_TransLM(unsigned short val_nDim, unsigned short val_nVar,
@@ -454,12 +605,12 @@ void CSourcePieceWise_TransLM::ComputeResidual_TransLM(double *val_residual, dou
 		/*-- Fixed-point iterations to solve REth correlation --*/
 		f_lambda = 1.;
     
-    if  (boundary) {
-      re_theta = 1399.83;
-      lambda = 0.0;
-      f_lambda = 0.0;
-    }
-    else {
+    //if  (boundary) {
+    //  re_theta = 1399.83;
+    //  lambda = 0.0;
+    //  f_lambda = 0.0;
+    //}
+    //else {
       for (int iter=0; iter<10; iter++) {
         
         
@@ -482,7 +633,7 @@ void CSourcePieceWise_TransLM::ComputeResidual_TransLM(double *val_residual, dou
           f_lambda = 1. + 0.275*(1.-exp(-35.*lambda))*exp(-2.*tu);
         }
       }
-    }
+    //}
     
 		/*-- Calculate blending function f_theta --*/
 		time_scale = 500.0*Laminar_Viscosity_i/(U_i[0]*Velocity_Mag*Velocity_Mag);
@@ -530,17 +681,17 @@ void CSourcePieceWise_TransLM::ComputeResidual_TransLM(double *val_residual, dou
 		gamma_sep = s1*max(0.,re_v/(3.235*rey_tc)-1.)*f_reattach;
 		gamma_sep = min(gamma_sep,2.0)*f_theta;
     
-		/*--- Implicit part ---*/
+    /*--- Implicit part ---*/
     TransVar_id[0] = 1.0; TransVar_id[1] = 0.0;
     CSourcePieceWise_TransLM__ComputeResidual_TransLM_d(TransVar_i, TransVar_id, val_residual, val_residuald, config);
     val_Jacobian_i[0][0] = val_residuald[0];
     val_Jacobian_i[1][0] = val_residuald[1];
-    
+
     TransVar_id[0] = 0.0; TransVar_id[1] = 1.0;
     CSourcePieceWise_TransLM__ComputeResidual_TransLM_d(TransVar_i, TransVar_id, val_residual, val_residuald, config);
     val_Jacobian_i[0][1] = val_residuald[0];
     val_Jacobian_i[1][1] = val_residuald[1];
-    
+
 	  //SU2_CPP2C COMMENT END
 	}
   //SU2_CPP2C END CSourcePieceWise_TransLM::ComputeResidual_TransLM
