@@ -368,10 +368,10 @@ void CTransLMSolver::Viscous_Residual(CGeometry *geometry, CSolver **solver_cont
     LinSysRes.SubtractBlock(iPoint, Residual);
     LinSysRes.AddBlock(jPoint, Residual);
     
-    Jacobian.SubtractBlock(iPoint,iPoint,Jacobian_i);
-    Jacobian.SubtractBlock(iPoint,jPoint,Jacobian_j);
-    Jacobian.AddBlock(jPoint,iPoint,Jacobian_i);
-    Jacobian.AddBlock(jPoint,jPoint,Jacobian_j);
+//    Jacobian.SubtractBlock(iPoint,iPoint,Jacobian_i);
+//    Jacobian.SubtractBlock(iPoint,jPoint,Jacobian_j);
+//    Jacobian.AddBlock(jPoint,iPoint,Jacobian_i);
+//    Jacobian.AddBlock(jPoint,jPoint,Jacobian_j);
     
   }
 }
@@ -383,46 +383,46 @@ void CTransLMSolver::Source_Residual(CGeometry *geometry, CSolver **solver_conta
   bool boundary;
 
   //cout << "Setting Trans residual -AA " << endl;
-//  cout << "\nBeginAA" << endl;
-	for (iPoint = 0; iPoint < geometry->GetnPointDomain(); iPoint++) {
- //   cout << "\niPoint: " << iPoint << endl;
-		
-		/*--- Conservative variables w/o reconstruction ---*/
-		numerics->SetConservative(solver_container[FLOW_SOL]->node[iPoint]->GetSolution(), NULL);
-		
-		/*--- Gradient of the primitive and conservative variables ---*/
-		numerics->SetPrimVarGradient(solver_container[FLOW_SOL]->node[iPoint]->GetGradient_Primitive(), NULL);
-		
-		/*--- Laminar and eddy viscosity ---*/
-		numerics->SetLaminarViscosity(solver_container[FLOW_SOL]->node[iPoint]->GetLaminarViscosity(), 0.0);
-    numerics->SetEddyViscosity(solver_container[FLOW_SOL]->node[iPoint]->GetEddyViscosity(),0.0);
-		
-		/*--- Turbulent variables w/o reconstruction, and its gradient ---*/
-		numerics->SetTransVar(node[iPoint]->GetSolution(), NULL);
-		// numerics->SetTransVarGradient(node[iPoint]->GetGradient(), NULL);  // Is this needed??
-		
-		/*--- Set volume ---*/
-		numerics->SetVolume(geometry->node[iPoint]->GetVolume());
-		
-		/*--- Set distance to the surface ---*/
-		numerics->SetDistance(geometry->node[iPoint]->GetWallDistance(), 0.0);
-    
-		/*--- Set distance to the surface ---*/
-		boundary = geometry->node[iPoint]->GetBoundary();
-    
-		/*--- Compute the source term ---*/
-		numerics->ComputeResidual_TransLM(Residual, Jacobian_i, gamma_sep, config, boundary);
-		
-    /*-- Store gamma_sep in variable class --*/
-    node[iPoint]->SetGammaSep(gamma_sep);
-    node[iPoint]->ComputeGammaEff();
-
-		/*--- Subtract residual and the jacobian ---*/
-		LinSysRes.SubtractBlock(iPoint, Residual);
-    Jacobian.SubtractBlock(iPoint, iPoint, Jacobian_i);
-
-	}
- 
+  //cout << "\nBeginAA" << endl;
+//	for (iPoint = 0; iPoint < geometry->GetnPointDomain(); iPoint++) {
+//    //   cout << "\niPoint: " << iPoint << endl;
+//		
+//		/*--- Conservative variables w/o reconstruction ---*/
+//		numerics->SetConservative(solver_container[FLOW_SOL]->node[iPoint]->GetSolution(), NULL);
+//		
+//		/*--- Gradient of the primitive and conservative variables ---*/
+//		numerics->SetPrimVarGradient(solver_container[FLOW_SOL]->node[iPoint]->GetGradient_Primitive(), NULL);
+//		
+//		/*--- Laminar and eddy viscosity ---*/
+//		numerics->SetLaminarViscosity(solver_container[FLOW_SOL]->node[iPoint]->GetLaminarViscosity(), 0.0);
+//    numerics->SetEddyViscosity(solver_container[FLOW_SOL]->node[iPoint]->GetEddyViscosity(),0.0);
+//		
+//		/*--- Turbulent variables w/o reconstruction, and its gradient ---*/
+//		numerics->SetTransVar(node[iPoint]->GetSolution(), NULL);
+//		// numerics->SetTransVarGradient(node[iPoint]->GetGradient(), NULL);  // Is this needed??
+//		
+//		/*--- Set volume ---*/
+//		numerics->SetVolume(geometry->node[iPoint]->GetVolume());
+//		
+//		/*--- Set distance to the surface ---*/
+//		numerics->SetDistance(geometry->node[iPoint]->GetWallDistance(), 0.0);
+//    
+//		/*--- Set distance to the surface ---*/
+//		boundary = geometry->node[iPoint]->GetBoundary();
+//    
+//		/*--- Compute the source term ---*/
+//		numerics->ComputeResidual_TransLM(Residual, Jacobian_i, gamma_sep, config, boundary);
+//		
+//    /*-- Store gamma_sep in variable class --*/
+//    node[iPoint]->SetGammaSep(gamma_sep);
+//    node[iPoint]->ComputeGammaEff();
+//
+//		/*--- Subtract residual and the jacobian ---*/
+//		LinSysRes.SubtractBlock(iPoint, Residual);
+//    Jacobian.SubtractBlock(iPoint, iPoint, Jacobian_i);
+//
+//	}
+//
 //  for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
 //    if ((config->GetMarker_All_Boundary(iMarker) == INLET_FLOW) ||
 //        (config->GetMarker_All_Boundary(iMarker) == OUTLET_FLOW) ||
@@ -896,5 +896,7 @@ void CTransLMSolver::BC_Outlet(CGeometry *geometry, CSolver **solver_container, 
 
 void CTransLMSolver::BC_Sym_Plane(CGeometry *geometry, CSolver **solver_container, CNumerics *conv_numerics, CNumerics *visc_numerics,
 																 CConfig *config, unsigned short val_marker) {
-BC_HeatFlux_Wall(geometry, solver_container, conv_numerics, visc_numerics, config, val_marker);
+
+//BC_HeatFlux_Wall(geometry, solver_container, conv_numerics, visc_numerics, config, val_marker);
+
 }
