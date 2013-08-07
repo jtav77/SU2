@@ -816,6 +816,10 @@ public:
 	 */
 	~CPhysicalGeometry(void);
   
+  void CPhysicalGeometry::ComputeGrid_Planes(double *Plane_P0, double *Plane_Normal, unsigned short iSection, CConfig *config,
+                                             vector<double> &Xcoord_Plane, vector<double> &Ycoord_Plane,
+                                             vector<double> &Zcoord_Plane, bool original_surface)
+  
   /*!
 	 * \brief Reads the geometry of the grid and adjust the boundary
 	 *        conditions with the configuration file.
@@ -826,7 +830,7 @@ public:
 	 * \param[in] val_nZone - Total number of domains in the grid file.
 	 */
 	void SU2_Format(CConfig *config, string val_mesh_filename, unsigned short val_iZone, unsigned short val_nZone);
-  
+    
   /*!
 	 * \brief Reads the geometry of the grid and adjust the boundary
 	 *        conditions with the configuration file.

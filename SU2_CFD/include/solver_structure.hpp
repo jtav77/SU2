@@ -736,8 +736,15 @@ public:
 	 * \param[in] geometry - Geometrical definition of the problem.
 	 * \param[in] config - Definition of the particular problem.
 	 */
+	virtual void Plane_Sections(CGeometry *geometry, CConfig *config);
+
+  /*!
+	 * \brief A virtual member.
+	 * \param[in] geometry - Geometrical definition of the problem.
+	 * \param[in] config - Definition of the particular problem.
+	 */
 	virtual void Inviscid_Forces(CGeometry *geometry, CConfig *config);
-    
+  
 	/*!
 	 * \brief A virtual member.
 	 * \param[in] geometry - Geometrical definition of the problem.
@@ -2266,7 +2273,14 @@ public:
 	 * \param[in] config - Definition of the particular problem.
 	 */
 	void ImplicitEuler_Iteration(CGeometry *geometry, CSolver **solver_container, CConfig *config);
-    
+  
+  /*!
+	 * \brief A virtual member.
+	 * \param[in] geometry - Geometrical definition of the problem.
+	 * \param[in] config - Definition of the particular problem.
+	 */
+	void Plane_Sections(CGeometry *geometry, CConfig *config);
+  
 	/*!
 	 * \brief Compute the pressure forces and all the adimensional coefficients.
 	 * \param[in] geometry - Geometrical definition of the problem.
