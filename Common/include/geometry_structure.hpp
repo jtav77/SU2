@@ -831,6 +831,16 @@ public:
 	 */
 	~CPhysicalGeometry(void);
   
+    /*! 
+	 * \brief Creates the grid on a section sliced in the domain 
+	 * \param[in] Plane_P0 - Coordinates of a point on the current plane
+	 * \param[in] Plane_Normal - Coordinates of a normal vector of the current plane
+	 * \param[in] config - Definition of the particular problem.
+	 * \param[in] Xcoord_Plane - Domain to be read from the grid file.
+	 * \param[in] Ycoord_Plane - Domain to be read from the grid file.
+	 * \param[in] Zcoord_Plane - Domain to be read from the grid file.
+	 * \param[in] original_surface - boolean 
+	 */
   void ComputeGrid_Planes(double *Plane_P0, double *Plane_Normal, unsigned short iSection, CConfig *config,
                                              vector<double> &Xcoord_Plane, vector<double> &Ycoord_Plane,
                                              vector<double> &Zcoord_Plane, bool original_surface);
