@@ -283,7 +283,7 @@ void CIntegration::Convergence_Monitoring(CGeometry *geometry, CConfig *config, 
     if (((fabs(InitResidual - monitor) >= config->GetOrderMagResidual()) && (monitor < InitResidual))  ||
         (monitor <= config->GetMinLogResidual())) Convergence = true;
     else Convergence = false;
-    
+
   }
   
   /*--- Do not apply any convergence criteria of the number 

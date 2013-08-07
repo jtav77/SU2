@@ -4472,7 +4472,7 @@ private:
   bool transition;
   bool rotating_frame;
   double div, StrainMag;
-  double beta, gamma_sep, gamma_eff, intermittency;
+  double beta, gamma_eff, intermittency;
   double Freattach, r_t, s1;
 
 public:

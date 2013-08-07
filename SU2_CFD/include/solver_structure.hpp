@@ -3123,7 +3123,7 @@ public:
 
 class CTransLMSolver: public CTurbSolver {
 private:
-	double Intermittency_Inf, REth_Inf;
+	double Intermittency_Inf, REth_Inf, Density_Inf;
 public:
 	/*!
 	 * \brief Constructor of the class.
@@ -3277,16 +3277,6 @@ public:
 	 * \param[in] config - Definition of the particular problem.
 	 */
 	void ImplicitEuler_Iteration(CGeometry *geometry, CSolver **solver_container, CConfig *config);
-    
-	// Another set of matrix structures for the Lm equations
-	CSysMatrix JacobianItmc; /*!< \brief Complete sparse Jacobian structure for implicit computations. */
-	double *LinSysSolItmc;		/*!< \brief vector to store iterative solution of implicit linear system. */
-	double *LinSysResItmc;		/*!< \brief vector to store iterative residual of implicit linear system. */
-	double *rhsItmc;		/*!< \brief right hand side of implicit linear system. */
-	CSysMatrix JacobianReth; /*!< \brief Complete sparse Jacobian structure for implicit computations. */
-	double *LinSysSolReth;		/*!< \brief vector to store iterative solution of implicit linear system. */
-	double *LinSysResReth;		/*!< \brief vector to store iterative residual of implicit linear system. */
-	double *rhsReth;		/*!< \brief right hand side of implicit linear system. */
 };
 
 /*!

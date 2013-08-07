@@ -912,19 +912,13 @@ public:
 	 * \brief A virtual member.
 	 * \return Sets separation intermittency
 	 */
-	virtual void ComputeGammaEff(void);
+	virtual void ComputeGammaEff(double Density);
 
 	/*!
 	 * \brief A virtual member.
 	 * \return Returns gamma_eff (Langtry transition model)
 	 */
   virtual double GetGammaEff(void);
-
-	/*!
-	 * \brief A virtual member.
-	 * \return Returns intermittency
-	 */
-	virtual double GetIntermittency();
 
 	/*!
 	 * \brief A virtual member.
@@ -2325,20 +2319,13 @@ public:
 	 * \param[in] val_nvar - Number of variables of the problem.
 	 * \param[in] config - Definition of the particular problem.	 
 	 */	
-	CTransLMVariable(double val_nu_tilde, double val_intermittency, double val_REth, unsigned short val_ndim, unsigned short val_nvar, CConfig *config);
+	CTransLMVariable(double val_density, double val_intermittency, double val_REth, unsigned short val_ndim, unsigned short val_nvar, CConfig *config);
 
 	/*!
 	 * \brief Destructor of the class. 
 	 */
 	~CTransLMVariable(void);
 
-  /*!
-	 * \brief ________________.
-	 * \param[in] val_var - Index of the variable.
-	 * \param[in] val_solution - Value of the time spectral source term. for the index <i>val_var</i>.
-	 */
-  double GetIntermittency(void);
-  
   /*!
 	 * \brief routine to set gamma_sep (Equation 17, Langtry 2009)
 	 * \param[in] gamma_sep_in - Value of gamma_sep computed in source term
@@ -2348,7 +2335,7 @@ public:
   /*!
 	 * \brief routine to compute gamma_eff (Equation 19, Langtry 2009)
 	 */
-  void ComputeGammaEff(void);
+  void ComputeGammaEff(double Density);
 
   /*!
 	 * \brief routine to set gamma_eff (Equation 19, Langtry 2009)

@@ -546,8 +546,8 @@ CSourcePieceWise_TurbSA::CSourcePieceWise_TurbSA(unsigned short val_nDim, unsign
                                                  CConfig *config) : CNumerics(val_nDim, val_nVar, config) {
   
 	incompressible = config->GetIncompressible();
-	//transition     = (config->GetKind_Trans_Model() == LM);
-  transition = false; // Debugging, -AA
+	transition     = (config->GetKind_Trans_Model() == LM);
+    //transition = false; // Debugging, -AA
   rotating_frame = config->GetRotating_Frame();
   
 	Gamma = config->GetGamma();
@@ -575,23 +575,23 @@ void CSourcePieceWise_TurbSA::ComputeResidual(double *val_residual, double **val
 	//************************************************//
 	// Please do not delete //SU2_CPP2C comment lines //
 	//************************************************//
-  
+
 	//SU2_CPP2C START CSourcePieceWise_TurbSA::ComputeResidual
 	//SU2_CPP2C CALL_LIST START
 	//SU2_CPP2C INVARS *U_i **PrimVar_Grad_i Laminar_Viscosity_i *TurbVar_i **TurbVar_Grad_i
 	//SU2_CPP2C OUTVARS *val_residual
 	//SU2_CPP2C VARS DOUBLE dist_i cv1_3 k2 cb1 cb2 cw1 cw2 cw3_6 Volume sigma TURB_EPS
 	//SU2_CPP2C CALL_LIST END
-  
+
 	//SU2_CPP2C DEFINE nDim
-  
+
 	//SU2_CPP2C DECL_LIST START
 	//SU2_CPP2C VARS INT SCALAR iDim
 	//SU2_CPP2C VARS DOUBLE SCALAR Density_i DivVelocity Vorticity dist_i_2
 	//SU2_CPP2C VARS DOUBLE SCALAR nu Ji Ji_2 Ji_3 fv1 fv2 Omega Shat
 	//SU2_CPP2C VARS DOUBLE SCALAR r g g_6 glim fw norm2_Grad
 	//SU2_CPP2C DECL_LIST END
-  
+
 	//SU2_CPP2C COMMENT START
 	if (incompressible) Density_i = DensityInc_i;
 	else {
@@ -600,41 +600,41 @@ void CSourcePieceWise_TurbSA::ComputeResidual(double *val_residual, double **val
 		//SU2_CPP2C COMMENT START
 	}
 	//SU2_CPP2C COMMENT END
-  
+
 	val_residual[0] = 0.0;
-  
+
 	//SU2_CPP2C COMMENT START
-  val_Jacobian_i[0][0] = 0.0;
+	val_Jacobian_i[0][0] = 0.0;
 	//SU2_CPP2C COMMENT END
-  
+
 	/*--- Computation of vorticity ---*/
 	Vorticity = (PrimVar_Grad_i[2][0]-PrimVar_Grad_i[1][1])*(PrimVar_Grad_i[2][0]-PrimVar_Grad_i[1][1]);
 	if (nDim == 3) Vorticity += ( (PrimVar_Grad_i[3][1]-PrimVar_Grad_i[2][2])*(PrimVar_Grad_i[3][1]-PrimVar_Grad_i[2][2]) +
-                               (PrimVar_Grad_i[1][2]-PrimVar_Grad_i[3][0])*(PrimVar_Grad_i[1][2]-PrimVar_Grad_i[3][0]) );
+			(PrimVar_Grad_i[1][2]-PrimVar_Grad_i[3][0])*(PrimVar_Grad_i[1][2]-PrimVar_Grad_i[3][0]) );
 	Omega = max(sqrt(Vorticity), 1.0e-10);
 	dist_i = max(dist_i, 1.0e-10);
-  
-  /*--- Rotational correction term ---*/
-  if (rotating_frame) {
-    div = PrimVar_Grad_i[1][0] + PrimVar_Grad_i[2][1];
-    if (nDim == 3) div += PrimVar_Grad_i[3][2];
-    StrainMag = 0.0;
-    // add diagonals
-    StrainMag += pow(PrimVar_Grad_i[1][0] - 1.0/3.0*div,2.0);
-    StrainMag += pow(PrimVar_Grad_i[2][1] - 1.0/3.0*div,2.0);
-    if (nDim == 3) StrainMag += pow(PrimVar_Grad_i[3][2] - 1.0/3.0*div,2.0);
-    // add off diagonals
-    StrainMag += 2.0*pow(0.5*(PrimVar_Grad_i[1][1]+PrimVar_Grad_i[2][0]),2.0);
-    if (nDim == 3) {
-      StrainMag += 2.0*pow(0.5*(PrimVar_Grad_i[1][2]+PrimVar_Grad_i[3][0]),2.0);
-      StrainMag += 2.0*pow(0.5*(PrimVar_Grad_i[2][2]+PrimVar_Grad_i[3][1]),2.0);
-    }
-    StrainMag = sqrt(2.0*StrainMag);
-    Omega += 2.0*min(0.0,StrainMag-Omega);
-  }
-  
+
+	/*--- Rotational correction term ---*/
+	if (rotating_frame) {
+		div = PrimVar_Grad_i[1][0] + PrimVar_Grad_i[2][1];
+		if (nDim == 3) div += PrimVar_Grad_i[3][2];
+		StrainMag = 0.0;
+		// add diagonals
+		StrainMag += pow(PrimVar_Grad_i[1][0] - 1.0/3.0*div,2.0);
+		StrainMag += pow(PrimVar_Grad_i[2][1] - 1.0/3.0*div,2.0);
+		if (nDim == 3) StrainMag += pow(PrimVar_Grad_i[3][2] - 1.0/3.0*div,2.0);
+		// add off diagonals
+		StrainMag += 2.0*pow(0.5*(PrimVar_Grad_i[1][1]+PrimVar_Grad_i[2][0]),2.0);
+		if (nDim == 3) {
+			StrainMag += 2.0*pow(0.5*(PrimVar_Grad_i[1][2]+PrimVar_Grad_i[3][0]),2.0);
+			StrainMag += 2.0*pow(0.5*(PrimVar_Grad_i[2][2]+PrimVar_Grad_i[3][1]),2.0);
+		}
+		StrainMag = sqrt(2.0*StrainMag);
+		Omega += 2.0*min(0.0,StrainMag-Omega);
+	}
+
 	if (dist_i > 0.0) {
-    
+
 		/*--- Production term ---*/
 		dist_i_2 = dist_i*dist_i;
 		nu = Laminar_Viscosity_i/Density_i;
@@ -643,57 +643,57 @@ void CSourcePieceWise_TurbSA::ComputeResidual(double *val_residual, double **val
 		Ji_3 = Ji_2*Ji;
 		fv1 = Ji_3/(Ji_3+cv1_3);
 		fv2 = 1.0 - Ji/(1.0+Ji*fv1);
-    S = Omega;
-    inv_k2_d2 = 1.0/(k2*dist_i_2);
-    
+		S = Omega;
+		inv_k2_d2 = 1.0/(k2*dist_i_2);
+
 		Shat = S + TurbVar_i[0]*fv2*inv_k2_d2;
-    inv_Shat = 1.0/max(Shat, 1.0e-10);
-    
-    /*--- Production term ---*/
+		inv_Shat = 1.0/max(Shat, 1.0e-10);
+
+		/*--- Production term ---*/
 		if (!transition) val_residual[0] += cb1*Shat*TurbVar_i[0]*Volume;
-    else val_residual[0] += cb1*Shat*TurbVar_i[0]*Volume*intermittency;
-    
+		else val_residual[0] += cb1*Shat*TurbVar_i[0]*Volume*gamma_eff;
+
 		/*--- Destruction term ---*/
 		r = min(TurbVar_i[0]*inv_Shat*inv_k2_d2,10.0);
 		g = r + cw2*(pow(r,6.0)-r);
 		g_6 =	pow(g,6.0);
 		glim = pow((1.0+cw3_6)/(g_6+cw3_6),1.0/6.0);
 		fw = g*glim;
-    
+
 		if (!transition) val_residual[0] -= cw1*fw*TurbVar_i[0]*TurbVar_i[0]/dist_i_2*Volume;
-		else val_residual[0] -= cw1*fw*TurbVar_i[0]*TurbVar_i[0]/dist_i_2*Volume*min(max(intermittency,0.1),1.0);
-    
+		else val_residual[0] -= cw1*fw*TurbVar_i[0]*TurbVar_i[0]/dist_i_2*Volume*max(min(intermittency,0.5),1.0);
+
 		/*--- Diffusion term ---*/
 		norm2_Grad = 0.0;
 		for (iDim = 0; iDim < nDim; iDim++)
 			norm2_Grad += TurbVar_Grad_i[0][iDim]*TurbVar_Grad_i[0][iDim];
 		val_residual[0] += cb2/sigma*norm2_Grad*Volume;
-    
+
 		//SU2_CPP2C COMMENT START
-    
+
 		/*--- Implicit part ---*/
-    
-    /*--- Production term ---*/
-    dfv1 = 3.0*Ji_2*cv1_3/(nu*pow(Ji_3+cv1_3,2.));
-    dfv2 = -(1/nu-Ji_2*dfv1)/pow(1.+Ji*fv1,2.);
-    if ( Shat <= 1.0e-10 ) dShat = 0.0;
-    else dShat = (fv2+TurbVar_i[0]*dfv2)*inv_k2_d2;
-    val_Jacobian_i[0][0] += cb1*(TurbVar_i[0]*dShat+Shat)*Volume;
-    
-    /*--- Destruction term ---*/
-    dr = (Shat-TurbVar_i[0]*dShat)*inv_Shat*inv_Shat*inv_k2_d2;
-    if (r == 10.0) dr = 0.0;
-    dg = dr*(1.+cw2*(6.*pow(r,5.)-1.));
-    dfw = dg*glim*(1.-g_6/(g_6+cw3_6));
-    val_Jacobian_i[0][0] -= cw1*(dfw*TurbVar_i[0] +	2.*fw)*TurbVar_i[0]/dist_i_2*Volume;
-    
+
+		/*--- Production term ---*/
+		dfv1 = 3.0*Ji_2*cv1_3/(nu*pow(Ji_3+cv1_3,2.));
+		dfv2 = -(1/nu-Ji_2*dfv1)/pow(1.+Ji*fv1,2.);
+		if ( Shat <= 1.0e-10 ) dShat = 0.0;
+		else dShat = (fv2+TurbVar_i[0]*dfv2)*inv_k2_d2;
+		val_Jacobian_i[0][0] += cb1*(TurbVar_i[0]*dShat+Shat)*Volume;
+
+		/*--- Destruction term ---*/
+		dr = (Shat-TurbVar_i[0]*dShat)*inv_Shat*inv_Shat*inv_k2_d2;
+		if (r == 10.0) dr = 0.0;
+		dg = dr*(1.+cw2*(6.*pow(r,5.)-1.));
+		dfw = dg*glim*(1.-g_6/(g_6+cw3_6));
+		val_Jacobian_i[0][0] -= cw1*(dfw*TurbVar_i[0] +	2.*fw)*TurbVar_i[0]/dist_i_2*Volume;
+
 		//SU2_CPP2C COMMENT END
 	}
 	//SU2_CPP2C COMMENT START
 	//SU2_CPP2C COMMENT END
-  
+
 	//SU2_CPP2C END CSourcePieceWise_TurbSA::ComputeResidual
-  
+
 }
 
 CSourcePieceWise_TurbSST::CSourcePieceWise_TurbSST(unsigned short val_nDim, unsigned short val_nVar, double *constants,

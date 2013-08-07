@@ -295,6 +295,7 @@ CEulerSolver::CEulerSolver(CGeometry *geometry, CConfig *config, unsigned short 
 		/*--- Restart the solution from infinity ---*/
 		for (iPoint = 0; iPoint < nPoint; iPoint++)
 			node[iPoint] = new CEulerVariable(Density_Inf, Velocity_Inf, Energy_Inf, nDim, nVar, config);
+
 	}
 
 	else {
@@ -6177,6 +6178,7 @@ CNSSolver::CNSSolver(CGeometry *geometry, CConfig *config, unsigned short iMesh)
 		/*--- Restart the solution from infinity ---*/
 		for (iPoint = 0; iPoint < nPoint; iPoint++)
 			node[iPoint] = new CNSVariable(Density_Inf, Velocity_Inf, Energy_Inf, nDim, nVar, config);
+
 	}
     
 	else {

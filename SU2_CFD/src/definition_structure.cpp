@@ -1057,7 +1057,8 @@ void Numerics_Preprocessing(CNumerics ****numerics_container, CSolver ***solver_
 
 		/*--- Definition of the boundary condition method ---*/
 		for (iMGlevel = 0; iMGlevel <= config->GetMGLevels(); iMGlevel++){
-			numerics_container[iMGlevel][TRANS_SOL][CONV_BOUND_TERM] = new CUpwLin_TransLM(nDim, nVar_Trans, config);
+			//numerics_container[iMGlevel][TRANS_SOL][CONV_BOUND_TERM] = new CUpwLin_TransLM(nDim, nVar_Trans, config);
+			numerics_container[iMGlevel][TRANS_SOL][CONV_BOUND_TERM] = new CUpwSca_TransLM(nDim, nVar_Trans, config);
 		}
 	}
 

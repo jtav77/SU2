@@ -189,13 +189,11 @@ inline double *CVariable::GetIntBoundary_Jump(void) { return NULL; }
 
 inline double CVariable::GetEddyViscosity(void) { return 0; }
 
-inline void CVariable::ComputeGammaEff(void) { }
+inline void CVariable::ComputeGammaEff(double Density) { }
 
 inline double CVariable::GetGammaEff(void) { }
 
 inline void CVariable::SetGammaSep(double gamma_sep) { }
-
-inline double CVariable::GetIntermittency(void) { return 0; }
 
 inline double CVariable::GetEnthalpy(void) { return 0; }
 
@@ -558,8 +556,6 @@ inline bool CNSVariable::SetPressure(double Gamma, double turb_ke) {
    if (Primitive[nDim+1] > 0.0) return false;
    else return true;
 }
-
-inline double CTransLMVariable::GetIntermittency() { return Solution[0]; }
 
 inline void CTransLMVariable::SetGammaSep(double gamma_sep_in) {gamma_sep = gamma_sep_in;}
 
