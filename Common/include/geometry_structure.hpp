@@ -780,11 +780,26 @@ public:
 	 */
 	double GetSpline(vector<double> &xa, vector<double> &ya, vector<double> &y2a, unsigned long n, double x);
 	
+  /*!
+	 * \brief Compute the intersection between a segment and a plane.
+   * \param[in] Segment_P0 - Definition of the particular problem.
+	 * \param[in] Segment_P1 - Definition of the particular problem.
+	 * \param[in] Plane_P0 - Definition of the particular problem.
+	 * \param[in] Plane_Normal - Definition of the particular problem.
+   * \param[in] Intersection - Definition of the particular problem.
+   * \returns If the intersection has has been successful.
+	 */
+  unsigned short ComputeSegmentPlane_Intersection(double *Segment_P0, double *Segment_P1, double *Plane_P0, double *Plane_Normal, double *Intersection);
+  
+  virtual void ComputeGrid_Planes(double *Plane_P0, double *Plane_Normal, unsigned short iSection, CConfig *config,
+                          vector<double> &Xcoord_Plane, vector<double> &Ycoord_Plane,
+                          vector<double> &Zcoord_Plane, bool original_surface);
+  
 };
 
-/*! 
+/*!
  * \class CPhysicalGeometry
- * \brief Class for reading a defining the primal grid which is read from the 
+ * \brief Class for reading a defining the primal grid which is read from the
  *        grid file in .su2 format.
  * \author F. Palacios.
  * \version 2.0.6
@@ -816,9 +831,9 @@ public:
 	 */
 	~CPhysicalGeometry(void);
   
-  void CPhysicalGeometry::ComputeGrid_Planes(double *Plane_P0, double *Plane_Normal, unsigned short iSection, CConfig *config,
+  void ComputeGrid_Planes(double *Plane_P0, double *Plane_Normal, unsigned short iSection, CConfig *config,
                                              vector<double> &Xcoord_Plane, vector<double> &Ycoord_Plane,
-                                             vector<double> &Zcoord_Plane, bool original_surface)
+                                             vector<double> &Zcoord_Plane, bool original_surface);
   
   /*!
 	 * \brief Reads the geometry of the grid and adjust the boundary

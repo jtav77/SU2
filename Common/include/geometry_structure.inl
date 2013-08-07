@@ -23,6 +23,10 @@
  
 #pragma once
 
+inline void CGeometry::ComputeGrid_Planes(double *Plane_P0, double *Plane_Normal, unsigned short iSection, CConfig *config,
+                          vector<double> &Xcoord_Plane, vector<double> &Ycoord_Plane,
+                          vector<double> &Zcoord_Plane, bool original_surface) { }
+                          
 inline long CGeometry::GetGlobal_to_Local_Point(long val_ipoint) { return 0; }
 
 inline unsigned short CGeometry::GetGlobal_to_Local_Marker(unsigned short val_imarker) { return 0; }

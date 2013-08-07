@@ -1690,6 +1690,8 @@ void CEulerSolver::Preprocessing(CGeometry *geometry, CSolver **solver_container
     /*--- Compute Joule heating ---*/
 	if (jouleheating) geometry->SetGeometryPlanes(config);
   
+  Plane_Sections(geometry, config);
+
 	for (iPoint = 0; iPoint < nPoint; iPoint ++) {
     
 		if (freesurface) levelset = solver_container[LEVELSET_SOL]->node[iPoint]->GetPrimVar(0);

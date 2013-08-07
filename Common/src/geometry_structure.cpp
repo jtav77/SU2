@@ -332,6 +332,44 @@ void CGeometry::SetSpline(vector<double> &x, vector<double> &y, unsigned long n,
   
 }
 
+unsigned short CGeometry::ComputeSegmentPlane_Intersection(double *Segment_P0, double *Segment_P1, double *Plane_P0, double *Plane_Normal, double *Intersection) {
+  double u[3], v[3], Denominator, Numerator, Aux;
+  unsigned short iDim;
+  
+  for (iDim = 0; iDim < 3; iDim++) {
+    u[iDim] = Segment_P1[iDim] - Segment_P0[iDim];
+    v[iDim] = Plane_P0[iDim] - Segment_P0[iDim];
+  }
+  
+  Numerator = Plane_Normal[0]*v[0] + Plane_Normal[1]*v[1] + Plane_Normal[2]*v[2];
+  Denominator = Plane_Normal[0]*u[0] + Plane_Normal[1]*u[1] + Plane_Normal[2]*u[2];
+  
+  if (fabs(Denominator) <= 0.0) return 0; // No intersection.
+  
+  Aux = Numerator / Denominator;
+  
+  if (Aux < 0.0 || Aux > 1.0) return 0; // No intersection.
+  
+  for (iDim = 0; iDim < 3; iDim++)
+    Intersection[iDim] = Segment_P0[iDim] + Aux * u[iDim];
+  
+  
+  /*--- Check that the intersection is in the segment ---*/
+  for (iDim = 0; iDim < 3; iDim++) {
+    u[iDim] = Segment_P0[iDim] - Intersection[iDim];
+    v[iDim] = Segment_P1[iDim] - Intersection[iDim];
+  }
+  
+  Denominator = Plane_Normal[0]*u[0] + Plane_Normal[1]*u[1] + Plane_Normal[2]*u[2];
+  Numerator = Plane_Normal[0]*v[0] + Plane_Normal[1]*v[1] + Plane_Normal[2]*v[2];
+  
+  Aux = Numerator * Denominator;
+  
+  if (Aux > 0.0) return 3; // Intersection outside the segment.
+  else return 1;
+  
+}
+
 double CGeometry::GetSpline(vector<double>&xa, vector<double>&ya, vector<double>&y2a, unsigned long n, double x) {
 	unsigned long klo, khi, k;
 	double h, b, a, y;
@@ -5528,18 +5566,15 @@ void CPhysicalGeometry::FindNormal_Neighbor(CConfig *config) {
 void CPhysicalGeometry::ComputeGrid_Planes(double *Plane_P0, double *Plane_Normal, unsigned short iSection, CConfig *config,
                                                vector<double> &Xcoord_Plane, vector<double> &Ycoord_Plane,
                                                vector<double> &Zcoord_Plane, bool original_surface) {
-  unsigned short iMarker, iNode, jNode, iDim, intersect;
-  long MinDist_Point, MinDistAngle_Point;
-	unsigned long iPoint, jPoint, iElem, Trailing_Point, Airfoil_Point, iVertex, jVertex, n;
-  double Segment_P0[3] = {0.0, 0.0, 0.0}, Segment_P1[3] = {0.0, 0.0, 0.0}, Intersection[3] = {0.0, 0.0, 0.0}, Trailing_Coord, MinDist_Value, MinDistAngle_Value, Dist_Value,
-  Airfoil_Tangent[3] = {0.0, 0.0, 0.0}, Segment[3] = {0.0, 0.0, 0.0}, Length, Angle_Value, Normal[3], Tangent[3], BiNormal[3], auxXCoord,
-  auxYCoord, auxZCoord, zp1, zpn, Camber_Line, MaxAngle = 25, CosValue;
+  unsigned short iDim, intersect;
+	unsigned long iPoint, jPoint, iVertex, jVertex, iEdge;
+  double Segment_P0[3] = {0.0, 0.0, 0.0}, Segment_P1[3] = {0.0, 0.0, 0.0}, Intersection[3] = {0.0, 0.0, 0.0}, Dist_Value,
+  Segment[3] = {0.0, 0.0, 0.0};
   vector<double> Xcoord, Ycoord, Zcoord, Z2coord, Xcoord_Normal, Ycoord_Normal, Zcoord_Normal, Xcoord_Camber, Ycoord_Camber, Zcoord_Camber;
   vector<unsigned long> Duplicate;
   vector<unsigned long>::iterator it;
   int rank = MASTER_NODE;
   double **Coord_Variation;
-  bool Boundary, Monitoring;
   
 #ifndef NO_MPI
 	unsigned long nLocalVertex, nGlobalVertex, MaxLocalVertex, *Buffer_Send_nVertex, *Buffer_Receive_nVertex, nBuffer;
@@ -5560,68 +5595,52 @@ void CPhysicalGeometry::ComputeGrid_Planes(double *Plane_P0, double *Plane_Norma
     Plane_Normal[0] = 0.0;  Plane_Normal[1] = 1.0;  Plane_Normal[2] = 0.0;
   }
   
-  for (iMarker = 0; iMarker < nMarker; iMarker++) {
-    for (iMarker = 0; iMarker < nMarker; iMarker++) {
-      Boundary   = config->GetMarker_All_Boundary(iMarker);
-      Monitoring = config->GetMarker_All_Monitoring(iMarker);
+  bool *inPlane = new bool[nEdge];
+  for (iEdge = 0; iEdge < nEdge; iEdge++) {
+    inPlane[iEdge] = false;
+
+    iPoint = edge[iEdge]->GetNode(0);
+
+    if ((node[iPoint]->GetCoord(1) > Plane_P0[1]*0.75) && (node[iPoint]->GetCoord(1) < Plane_P0[1]*1.25))
+      inPlane[iEdge] = true;
+  }
+  
+  for (iEdge = 0; iEdge < nEdge; iEdge++)
+  if (inPlane[iEdge]) {
+    
+    iPoint = edge[iEdge]->GetNode(0);
+    jPoint = edge[iEdge]->GetNode(1);
       
-      if ((Boundary == EULER_WALL) || (Boundary == HEAT_FLUX) ||
-          (Boundary == ISOTHERMAL) || (Boundary == NEARFIELD_BOUNDARY)) {
-        
-        if (Monitoring) {
-          
-          for (iElem = 0; iElem < nElem_Bound[iMarker]; iElem++) {
-            for(iNode = 0; iNode < bound[iMarker][iElem]->GetnNodes(); iNode++) {
-              iPoint = bound[iMarker][iElem]->GetNode(iNode);
-              for(jNode = 0; jNode < bound[iMarker][iElem]->GetnNodes(); jNode++) {
-                jPoint = bound[iMarker][iElem]->GetNode(jNode);
-                
-                if (jPoint > iPoint) {
-                  
-                  Segment_P0[0] = 0.0;  Segment_P0[1] = 0.0;  Segment_P0[2] = 0.0;
-                  Segment_P1[0] = 0.0;  Segment_P1[1] = 0.0;  Segment_P1[2] = 0.0;
-                  
-                  for (iDim = 0; iDim < nDim; iDim++) {
-                    Segment_P0[iDim] = node[iPoint]->GetCoord(iDim);
-                    Segment_P1[iDim] = node[jPoint]->GetCoord(iDim);
-                  }
-                  
-                  /*--- In 2D add the points directly (note the change between Y and Z coordinate) ---*/
-                  if (nDim == 2) {
-                    Xcoord.push_back(Segment_P0[0]);  Xcoord.push_back(Segment_P1[0]);
-                    Ycoord.push_back(Segment_P0[2]);  Ycoord.push_back(Segment_P1[2]);
-                    Zcoord.push_back(Segment_P0[1]);  Zcoord.push_back(Segment_P1[1]);
-                  }
-                  /*--- In 3D compute the intersection ---*/
-                  else if (nDim == 3) {
-                    intersect = ComputeSegmentPlane_Intersection(Segment_P0, Segment_P1, Plane_P0, Plane_Normal, Intersection);
-                    if (intersect == 1) {
-                      Xcoord.push_back(Intersection[0]);
-                      Ycoord.push_back(Intersection[1]);
-                      Zcoord.push_back(Intersection[2]);
-                    }
-                  }
-                  
-                }
-                
-              }
-            }
-          }
+      Segment_P0[0] = 0.0;  Segment_P0[1] = 0.0;  Segment_P0[2] = 0.0;
+      Segment_P1[0] = 0.0;  Segment_P1[1] = 0.0;  Segment_P1[2] = 0.0;
+      
+      for (iDim = 0; iDim < nDim; iDim++) {
+        Segment_P0[iDim] = node[iPoint]->GetCoord(iDim);
+        Segment_P1[iDim] = node[jPoint]->GetCoord(iDim);
+      }
+      
+      /*--- In 2D add the points directly (note the change between Y and Z coordinate) ---*/
+      if (nDim == 2) {
+        Xcoord.push_back(Segment_P0[0]);  Xcoord.push_back(Segment_P1[0]);
+        Ycoord.push_back(Segment_P0[2]);  Ycoord.push_back(Segment_P1[2]);
+        Zcoord.push_back(Segment_P0[1]);  Zcoord.push_back(Segment_P1[1]);
+      }
+      /*--- In 3D compute the intersection ---*/
+      else if (nDim == 3) {
+        intersect = ComputeSegmentPlane_Intersection(Segment_P0, Segment_P1, Plane_P0, Plane_Normal, Intersection);
+        if (intersect == 1) {
+          Xcoord.push_back(Intersection[0]);
+          Ycoord.push_back(Intersection[1]);
+          Zcoord.push_back(Intersection[2]);
         }
       }
-    }
+      
   }
-  
-  if (original_surface == false) {
-    
-    for (iPoint = 0; iPoint < nPoint; iPoint++)
-      delete [] Coord_Variation[iPoint];
-    delete [] Coord_Variation;
-    
-  }
+
+  delete [] inPlane;
   
 #ifndef NO_MPI
-  
+
   /*--- Copy the coordinates of all the points in the plane to the master node ---*/
   nLocalVertex = 0, nGlobalVertex = 0, MaxLocalVertex = 0;
   nProcessor = MPI::COMM_WORLD.Get_size();
@@ -5648,19 +5667,14 @@ void CPhysicalGeometry::ComputeGrid_Planes(double *Plane_P0, double *Plane_Norma
   }
   
   MPI::COMM_WORLD.Allgather(Buffer_Send_Coord, nBuffer, MPI::DOUBLE, Buffer_Receive_Coord, nBuffer, MPI::DOUBLE);
-  
-  /*--- Clean the vectors before adding the new vertices only to the master node ---*/
-  Xcoord.clear();
-  Ycoord.clear();
-  Zcoord.clear();
-  
+    
   /*--- Copy the boundary to the master node vectors ---*/
   if (rank == MASTER_NODE) {
     for (iProcessor = 0; iProcessor < nProcessor; iProcessor++) {
       for (iVertex = 0; iVertex < Buffer_Receive_nVertex[iProcessor]; iVertex++) {
-        Xcoord.push_back( Buffer_Receive_Coord[ iProcessor*MaxLocalVertex*3 + iVertex*3 + 0] );
-        Ycoord.push_back( Buffer_Receive_Coord[ iProcessor*MaxLocalVertex*3 + iVertex*3 + 1] );
-        Zcoord.push_back( Buffer_Receive_Coord[ iProcessor*MaxLocalVertex*3 + iVertex*3 + 2] );
+        Xcoord_Plane.push_back( Buffer_Receive_Coord[ iProcessor*MaxLocalVertex*3 + iVertex*3 + 0] );
+        Ycoord_Plane.push_back( Buffer_Receive_Coord[ iProcessor*MaxLocalVertex*3 + iVertex*3 + 1] );
+        Zcoord_Plane.push_back( Buffer_Receive_Coord[ iProcessor*MaxLocalVertex*3 + iVertex*3 + 2] );
       }
     }
   }
@@ -5673,11 +5687,11 @@ void CPhysicalGeometry::ComputeGrid_Planes(double *Plane_P0, double *Plane_Norma
   if (rank == MASTER_NODE) {
     
     /*--- Create a list with the duplicated points ---*/
-    for (iVertex = 0; iVertex < Xcoord.size()-1; iVertex++) {
-      for (jVertex = iVertex+1; jVertex < Xcoord.size(); jVertex++) {
-        Segment[0] = Xcoord[jVertex] - Xcoord[iVertex];
-        Segment[1] = Ycoord[jVertex] - Ycoord[iVertex];
-        Segment[2] = Zcoord[jVertex] - Zcoord[iVertex];
+    for (iVertex = 0; iVertex < Xcoord_Plane.size()-1; iVertex++) {
+      for (jVertex = iVertex+1; jVertex < Xcoord_Plane.size(); jVertex++) {
+        Segment[0] = Xcoord_Plane[jVertex] - Xcoord_Plane[iVertex];
+        Segment[1] = Ycoord_Plane[jVertex] - Ycoord_Plane[iVertex];
+        Segment[2] = Zcoord_Plane[jVertex] - Zcoord_Plane[iVertex];
         Dist_Value = sqrt(pow(Segment[0], 2.0) + pow(Segment[1], 2.0) + pow(Segment[2], 2.0));
         if (Dist_Value < 1E-6) {
           Duplicate.push_back (jVertex);
@@ -5691,164 +5705,26 @@ void CPhysicalGeometry::ComputeGrid_Planes(double *Plane_P0, double *Plane_Norma
     
     /*--- Remove duplicated points (starting from the back) ---*/
     for (iVertex = Duplicate.size(); iVertex > 0; iVertex--) {
-      Xcoord.erase (Xcoord.begin() + Duplicate[iVertex-1]);
-      Ycoord.erase (Ycoord.begin() + Duplicate[iVertex-1]);
-      Zcoord.erase (Zcoord.begin() + Duplicate[iVertex-1]);
+      Xcoord_Plane.erase (Xcoord_Plane.begin() + Duplicate[iVertex-1]);
+      Ycoord_Plane.erase (Ycoord_Plane.begin() + Duplicate[iVertex-1]);
+      Zcoord_Plane.erase (Zcoord_Plane.begin() + Duplicate[iVertex-1]);
     }
     
-    /*--- Find the trailing edge ---*/
-    Trailing_Point = 0; Trailing_Coord = Xcoord[0];
-    for (iVertex = 1; iVertex < Xcoord.size(); iVertex++) {
-      if (Xcoord[iVertex] > Trailing_Coord) {
-        Trailing_Point = iVertex; Trailing_Coord = Xcoord[iVertex];
-      }
-    }
-    
-    /*--- Add the trailing edge to the list, and remove from the original list ---*/
-    Xcoord_Plane.push_back(Xcoord[Trailing_Point]); Ycoord_Plane.push_back(Ycoord[Trailing_Point]); Zcoord_Plane.push_back(Zcoord[Trailing_Point]);
-    Xcoord.erase (Xcoord.begin() + Trailing_Point); Ycoord.erase (Ycoord.begin() + Trailing_Point); Zcoord.erase (Zcoord.begin() + Trailing_Point);
-    
-    /*--- Find the next point using the right hand side rule ---*/
-    MinDist_Value = 1E6;
-    for (iVertex = 0; iVertex < Xcoord.size(); iVertex++) {
-      Segment[0] = Xcoord[iVertex] - Xcoord_Plane[0];
-      Segment[1] = Ycoord[iVertex] - Ycoord_Plane[0];
-      Segment[2] = Zcoord[iVertex] - Zcoord_Plane[0];
-      Dist_Value = sqrt(pow(Segment[0], 2.0) + pow(Segment[1], 2.0) + pow(Segment[2], 2.0));
-      Segment[0] /= Dist_Value; Segment[1] /= Dist_Value; Segment[2] /= Dist_Value;
-      
-      if ((Dist_Value < MinDist_Value) && (Segment[2] > 0.0)) { MinDist_Point = iVertex; MinDist_Value = Dist_Value; }
-    }
-    Xcoord_Plane.push_back(Xcoord[MinDist_Point]);  Ycoord_Plane.push_back(Ycoord[MinDist_Point]);  Zcoord_Plane.push_back(Zcoord[MinDist_Point]);
-    Xcoord.erase (Xcoord.begin() + MinDist_Point);    Ycoord.erase (Ycoord.begin() + MinDist_Point);    Zcoord.erase (Zcoord.begin() + MinDist_Point);
-    
-    /*--- Algorithm for the rest of the points ---*/
-    do {
-      
-      /*--- Last added point in the list ---*/
-      Airfoil_Point = Xcoord_Plane.size() - 1;
-      
-      /*--- Compute the slope of the curve ---*/
-      Airfoil_Tangent[0] = Xcoord_Plane[Airfoil_Point] - Xcoord_Plane[Airfoil_Point-1];
-      Airfoil_Tangent[1] = Ycoord_Plane[Airfoil_Point] - Ycoord_Plane[Airfoil_Point-1];
-      Airfoil_Tangent[2] = Zcoord_Plane[Airfoil_Point] - Zcoord_Plane[Airfoil_Point-1];
-      Length = sqrt(pow(Airfoil_Tangent[0], 2.0) + pow(Airfoil_Tangent[1], 2.0) + pow(Airfoil_Tangent[2], 2.0));
-      Airfoil_Tangent[0] /= Length; Airfoil_Tangent[1] /= Length; Airfoil_Tangent[2] /= Length;
-      
-      /*--- Find the closest point with the right slope ---*/
-      MinDist_Value = 1E6; MinDistAngle_Value = 180;
-      MinDist_Point = -1; MinDistAngle_Point = -1;
-      for (iVertex = 0; iVertex < Xcoord.size(); iVertex++) {
         
-        Segment[0] = Xcoord[iVertex] - Xcoord_Plane[Airfoil_Point];
-        Segment[1] = Ycoord[iVertex] - Ycoord_Plane[Airfoil_Point];
-        Segment[2] = Zcoord[iVertex] - Zcoord_Plane[Airfoil_Point];
-        
-        /*--- Compute the distance to each point ---*/
-        Dist_Value = sqrt(pow(Segment[0], 2.0) + pow(Segment[1], 2.0) + pow(Segment[2], 2.0));
-        
-        /*--- Compute the angle of the point ---*/
-        Segment[0] /= Dist_Value; Segment[1] /= Dist_Value; Segment[2] /= Dist_Value;
-        
-        /*--- Clip the value of the cosine, this is important due to the round errors ---*/
-        CosValue = Airfoil_Tangent[0]*Segment[0] + Airfoil_Tangent[1]*Segment[1] + Airfoil_Tangent[2]*Segment[2];
-        if (CosValue >= 1.0) CosValue = 1.0;
-        if (CosValue <= -1.0) CosValue = -1.0;
-        
-        Angle_Value = acos(CosValue) * 180 / PI_NUMBER;
-        
-        if (Dist_Value < MinDist_Value) { MinDist_Point = iVertex; MinDist_Value = Dist_Value; }
-        if ((Dist_Value < MinDistAngle_Value) && (Angle_Value < MaxAngle)) {MinDistAngle_Point = iVertex; MinDistAngle_Value = Dist_Value;}
-        
-      }
-      
-      if ( MinDistAngle_Point != -1) MinDist_Point = MinDistAngle_Point;
-      
-      /*--- Add and remove the min distance to the list ---*/
-      Xcoord_Plane.push_back(Xcoord[MinDist_Point]);  Ycoord_Plane.push_back(Ycoord[MinDist_Point]);  Zcoord_Plane.push_back(Zcoord[MinDist_Point]);
-      Xcoord.erase(Xcoord.begin() + MinDist_Point);    Ycoord.erase(Ycoord.begin() + MinDist_Point);    Zcoord.erase(Zcoord.begin() + MinDist_Point);
-      
-    } while (Xcoord.size() != 0);
-    
-    /*--- Clean the vector before using them again for storing the upper or the lower side ---*/
-    Xcoord.clear(); Ycoord.clear(); Zcoord.clear();
-    
-    /*--- Identify upper and lower side using the value of the normal vector --*/
-    for (iVertex = 1; iVertex < Xcoord_Plane.size(); iVertex++) {
-      Tangent[0] = Xcoord_Plane[iVertex] - Xcoord_Plane[iVertex-1];
-      Tangent[1] = Ycoord_Plane[iVertex] - Ycoord_Plane[iVertex-1];
-      Tangent[2] = Zcoord_Plane[iVertex] - Zcoord_Plane[iVertex-1];
-      Length = sqrt(pow(Tangent[0], 2.0) + pow(Tangent[1], 2.0) + pow(Tangent[2], 2.0));
-      Tangent[0] /= Length; Tangent[1] /= Length; Tangent[2] /= Length;
-      
-      BiNormal[0] = Plane_Normal[0];
-      BiNormal[1] = Plane_Normal[1];
-      BiNormal[2] = Plane_Normal[2];
-      Length = sqrt(pow(BiNormal[0], 2.0) + pow(BiNormal[1], 2.0) + pow(BiNormal[2], 2.0));
-      BiNormal[0] /= Length; BiNormal[1] /= Length; BiNormal[2] /= Length;
-      
-      Normal[0] = Tangent[1]*BiNormal[2] - Tangent[2]*BiNormal[1];
-      Normal[1] = Tangent[2]*BiNormal[0] - Tangent[0]*BiNormal[2];
-      Normal[2] = Tangent[0]*BiNormal[1] - Tangent[1]*BiNormal[0];
-      
-      Xcoord_Normal.push_back(Normal[0]); Ycoord_Normal.push_back(Normal[1]); Zcoord_Normal.push_back(Normal[2]);
-      
-      if (Normal[2] >= 0.0) {
-        Xcoord.push_back(Xcoord_Plane[iVertex]);
-        Ycoord.push_back(Ycoord_Plane[iVertex]);
-        Zcoord.push_back(Zcoord_Plane[iVertex]);
-      }
-      
-    }
-    
-    n = Xcoord.size();
-    
-    /*--- Order the arrays using the X component ---*/
-    for (iVertex = 0; iVertex < Xcoord.size(); iVertex++) {
-      for (jVertex = 0; jVertex < Xcoord.size() - 1 - iVertex; jVertex++) {
-        if (Xcoord[jVertex] > Xcoord[jVertex+1]) {
-          auxXCoord = Xcoord[jVertex]; Xcoord[jVertex] = Xcoord[jVertex+1]; Xcoord[jVertex+1] = auxXCoord;
-          auxYCoord = Ycoord[jVertex]; Ycoord[jVertex] = Ycoord[jVertex+1]; Ycoord[jVertex+1] = auxYCoord;
-          auxZCoord = Zcoord[jVertex]; Zcoord[jVertex] = Zcoord[jVertex+1]; Zcoord[jVertex+1] = auxZCoord;
-        }
-      }
-    }
-    
-    zp1=(Zcoord[1]-Zcoord[0]) / (Xcoord[1]-Xcoord[0]);
-    zpn=(Zcoord[n-1]-Zcoord[n-2]) / (Xcoord[n-1]-Xcoord[n-2]);
-    Z2coord.resize(n+1);
-    SetSpline(Xcoord, Zcoord, n, zp1, zpn, Z2coord);
-    
-    /*--- Compute the camber--*/
-    for (iVertex = 0; iVertex < Xcoord_Plane.size(); iVertex++) {
-      if (Zcoord_Normal[iVertex] < 0.0) {
-        Camber_Line = 0.5 * (Zcoord_Plane[iVertex] + GetSpline(Xcoord, Zcoord, Z2coord, n, Xcoord_Plane[iVertex]));
-        Xcoord_Camber.push_back(Xcoord_Plane[iVertex]);
-        Ycoord_Camber.push_back(Ycoord_Plane[iVertex]);
-        Zcoord_Camber.push_back(Camber_Line);
-      }
-    }
-    
     /*--- Write the output file (tecplot format) ---*/
     if (original_surface == true) {
       ofstream Tecplot_File;
-      if (iSection == 0) Tecplot_File.open("Airfoil_Sections.plt", ios::out);
-      else Tecplot_File.open("Airfoil_Sections.plt", ios::app);
+      if (iSection == 0) Tecplot_File.open("Plane_Sections.plt", ios::out);
+      else Tecplot_File.open("Plane_Sections.plt", ios::app);
       
       if (iSection == 0) {
-        Tecplot_File << "TITLE = \"Wing airfoil sections\"" << endl;
+        Tecplot_File << "TITLE = \"Plane sections\"" << endl;
         Tecplot_File << "VARIABLES = \"X\",\"Y\",\"Z\"" << endl;
       }
-      
-      Tecplot_File << "ZONE T=\"SECTION_"<< (iSection+1) << "\", NODES= "<< Xcoord_Plane.size() << ", ELEMENTS= " << Xcoord_Plane.size()-1 << ", DATAPACKING= POINT, ZONETYPE= FELINESEG" << endl;
-      
+            
       /*--- Coordinates ---*/
       for (iVertex = 0; iVertex < Xcoord_Plane.size(); iVertex++) {
         Tecplot_File << Xcoord_Plane[iVertex] <<" "<< Ycoord_Plane[iVertex] <<" "<< Zcoord_Plane[iVertex] << endl;
-      }
-      /*--- Conectivity ---*/
-      for (iVertex = 1; iVertex < Xcoord_Plane.size(); iVertex++) {
-        Tecplot_File << iVertex << "\t" << iVertex+1 << "\n";
       }
       
       Tecplot_File.close();
