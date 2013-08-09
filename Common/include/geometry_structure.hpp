@@ -791,9 +791,10 @@ public:
 	 */
   unsigned short ComputeSegmentPlane_Intersection(double *Segment_P0, double *Segment_P1, double *Plane_P0, double *Plane_Normal, double *Intersection);
   
-  virtual void ComputeGrid_Planes(double *Plane_P0, double *Plane_Normal, unsigned short iSection, CConfig *config,
-                          vector<double> &Xcoord_Plane, vector<double> &Ycoord_Plane,
-                          vector<double> &Zcoord_Plane, bool original_surface);
+    virtual void ComputeGrid_Planes(double *Plane_P0, double *Plane_Normal, unsigned short iSection, CConfig *config,
+                                    vector<double> &Xcoord_Plane, vector<double> &Ycoord_Plane, vector<double> &Zcoord_Plane,
+                                    vector<unsigned long> &Index_Plane_iPoint, vector<unsigned long> &Index_Plane_jPoint, 
+                                    bool original_surface);
   
 };
 
@@ -841,9 +842,10 @@ public:
 	 * \param[in] Zcoord_Plane - Domain to be read from the grid file.
 	 * \param[in] original_surface - boolean 
 	 */
-  void ComputeGrid_Planes(double *Plane_P0, double *Plane_Normal, unsigned short iSection, CConfig *config,
-                                             vector<double> &Xcoord_Plane, vector<double> &Ycoord_Plane,
-                                             vector<double> &Zcoord_Plane, bool original_surface);
+    void ComputeGrid_Planes(double *Plane_P0, double *Plane_Normal, unsigned short iSection, CConfig *config,
+                            vector<double> &Xcoord_Plane, vector<double> &Ycoord_Plane, vector<double> &Zcoord_Plane,
+                            vector<unsigned long> &Index_Plane_iPoint, vector<unsigned long> &Index_Plane_jPoint, 
+                            bool original_surface);
   
   /*!
 	 * \brief Reads the geometry of the grid and adjust the boundary

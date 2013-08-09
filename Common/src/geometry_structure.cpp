@@ -5564,44 +5564,44 @@ void CPhysicalGeometry::FindNormal_Neighbor(CConfig *config) {
 }
 
 void CPhysicalGeometry::ComputeGrid_Planes(double *Plane_P0, double *Plane_Normal, unsigned short iSection, CConfig *config,
-                                           vector<double> &Xcoord_Plane, vector<double> &Ycoord_Plane,
-                                           vector<double> &Zcoord_Plane, bool original_surface) {
-    unsigned short iDim, intersect;
+                                           vector<double> &Xcoord_Plane, vector<double> &Ycoord_Plane, 
+                                           vector<double> &Zcoord_Plane, vector<unsigned long> &Index_Plane_iPoint, 
+                                           vector<unsigned long> &Index_Plane_jPoint, bool original_surface) {
+    unsigned short iDim, intersect, axis_Dim;
 	unsigned long iPoint, jPoint, iVertex, jVertex, iEdge;
     double Segment_P0[3] = {0.0, 0.0, 0.0}, Segment_P1[3] = {0.0, 0.0, 0.0}, Intersection[3] = {0.0, 0.0, 0.0}, Dist_Value,
     Segment[3] = {0.0, 0.0, 0.0};
-    vector<double> Xcoord, Ycoord, Zcoord, Z2coord, Xcoord_Normal, Ycoord_Normal, Zcoord_Normal, Xcoord_Camber, Ycoord_Camber, Zcoord_Camber;
+    vector<double> Xcoord, Ycoord, Zcoord, Z2coord, Xcoord_Normal, Ycoord_Normal, Zcoord_Normal;
+    vector<unsigned long> Index_iPoint, Index_jPoint;
     vector<unsigned long> Duplicate;
     vector<unsigned long>::iterator it;
     int rank = MASTER_NODE;
-    double **Coord_Variation;
+    
+    axis_Dim = 0;
     
 #ifndef NO_MPI
 	unsigned long nLocalVertex, nGlobalVertex, MaxLocalVertex, *Buffer_Send_nVertex, *Buffer_Receive_nVertex, nBuffer;
 	int nProcessor, iProcessor;
  	double *Buffer_Send_Coord, *Buffer_Receive_Coord;
+    unsigned long *Buffer_Send_Vertices, *Buffer_Receive_Vertices;
     
     rank = MPI::COMM_WORLD.Get_rank();
 #endif
     
     /*--- Be sure that the following vectors are empty ---*/
-    Xcoord_Plane.clear();
-	Ycoord_Plane.clear();
-	Zcoord_Plane.clear();
-    
-    /*--- Set the right plane in 2D (note the change in Y-Z plane) ---*/
-    if (nDim == 2) {
-        iSection = 0;
-        Plane_P0[0] = 0.0;      Plane_P0[1] = 0.0;      Plane_P0[2] = 0.0;
-        Plane_Normal[0] = 0.0;  Plane_Normal[1] = 1.0;  Plane_Normal[2] = 0.0;
-    }
+    Xcoord_Plane.clear(); 	
+    Ycoord_Plane.clear(); 	
+    Zcoord_Plane.clear();
+    Index_Plane_iPoint.clear(); 	
+    Index_Plane_jPoint.clear(); 
     
     /*--- Find edges that are "near" this particular plane ---*/
     bool *inPlane = new bool[nEdge];
     for (iEdge = 0; iEdge < nEdge; iEdge++) {
         inPlane[iEdge] = false;
         iPoint = edge[iEdge]->GetNode(0);
-        if ((node[iPoint]->GetCoord(1) > Plane_P0[1]*0.75) && (node[iPoint]->GetCoord(1) < Plane_P0[1]*1.25))
+        
+        if ((node[iPoint]->GetCoord(axis_Dim) > Plane_P0[axis_Dim]*0.75) && (node[iPoint]->GetCoord(axis_Dim) < Plane_P0[axis_Dim]*1.25))
             inPlane[iEdge] = true;
     }
     
@@ -5613,33 +5613,26 @@ void CPhysicalGeometry::ComputeGrid_Planes(double *Plane_P0, double *Plane_Norma
             iPoint = edge[iEdge]->GetNode(0);
             jPoint = edge[iEdge]->GetNode(1);
             
-//            Segment_P0[0] = 0.0;  Segment_P0[1] = 0.0;  Segment_P0[2] = 0.0;
-//            Segment_P1[0] = 0.0;  Segment_P1[1] = 0.0;  Segment_P1[2] = 0.0;
-            
             /*--- Segment_P0 and Segment_P1 store the coordinates of iPoint and jPoint respectively ---*/
             for (iDim = 0; iDim < nDim; iDim++) {
                 Segment_P0[iDim] = node[iPoint]->GetCoord(iDim);
                 Segment_P1[iDim] = node[jPoint]->GetCoord(iDim);
             }
             
-            /*--- In 2D add the points directly (note the change between Y and Z coordinate) ---*/
-            if (nDim == 2) {
-                Xcoord.push_back(Segment_P0[0]);  Xcoord.push_back(Segment_P1[0]);
-                Ycoord.push_back(Segment_P0[2]);  Ycoord.push_back(Segment_P1[2]);
-                Zcoord.push_back(Segment_P0[1]);  Zcoord.push_back(Segment_P1[1]);
-            }
             /*--- In 3D compute the intersection ---*/
             /*--- This method will return the point of intersection (Intersection) between the plane in question, and iEdge ---*/
-            else if (nDim == 3) {
-                intersect = ComputeSegmentPlane_Intersection(Segment_P0, Segment_P1, Plane_P0, Plane_Normal, Intersection);
-                if (intersect == 1) {
-                    
-                    /*--- Xcoord stores the x coordinate of the points of intersection of an edge with this plane ---*/
-                    Xcoord.push_back(Intersection[0]);
-                    Ycoord.push_back(Intersection[1]);
-                    Zcoord.push_back(Intersection[2]);
-                }
-            }            
+            intersect = ComputeSegmentPlane_Intersection(Segment_P0, Segment_P1, Plane_P0, Plane_Normal, Intersection);
+            if (intersect == 1) {        
+                /*--- Xcoord stores the x coordinate of the points of intersection of an edge with this plane and so on ... ---*/
+                Xcoord.push_back(Intersection[0]);
+                Ycoord.push_back(Intersection[1]);
+                Zcoord.push_back(Intersection[2]);
+                
+                /*--- Indicies of the nodes connecting the edge that intersects this plane and so on ... ---*/
+                Index_iPoint.push_back(iPoint);
+                Index_jPoint.push_back(jPoint);
+                
+            }
         }
     
     delete [] inPlane;
@@ -5666,6 +5659,7 @@ void CPhysicalGeometry::ComputeGrid_Planes(double *Plane_P0, double *Plane_Norma
     Buffer_Receive_Coord = new double [nProcessor*MaxLocalVertex*3];
     nBuffer = MaxLocalVertex*3;
     
+    /*---brief: Do this for the intersected points  ---*/
     for (iVertex = 0; iVertex < nLocalVertex; iVertex++) {
         Buffer_Send_Coord[iVertex*3 + 0] = Xcoord[iVertex];
         Buffer_Send_Coord[iVertex*3 + 1] = Ycoord[iVertex];
@@ -5685,8 +5679,34 @@ void CPhysicalGeometry::ComputeGrid_Planes(double *Plane_P0, double *Plane_Norma
         }
     }
     
-    delete[] Buffer_Send_Coord;   delete[] Buffer_Receive_Coord;
-    delete[] Buffer_Send_nVertex; delete[] Buffer_Receive_nVertex;
+    
+    Buffer_Send_Vertices = new unsigned long [MaxLocalVertex*2];
+    Buffer_Receive_Vertices = new unsigned long [nProcessor*MaxLocalVertex*2];
+    nBuffer = MaxLocalVertex*2;
+    
+    /*---brief: Do this for the indicies  ---*/
+    for (iVertex = 0; iVertex < nLocalVertex; iVertex++) {
+        Buffer_Send_Vertices[iVertex*2 + 0] = Index_iPoint[iVertex];
+        Buffer_Send_Coord[iVertex*2 + 1] = Index_jPoint[iVertex];
+    }
+    
+    MPI::COMM_WORLD.Allgather(Buffer_Send_Vertices, nBuffer, MPI::UNSIGNED_LONG, Buffer_Receive_Vertices, nBuffer, MPI::UNSIGNED_LONG);
+    
+    if (rank == MASTER_NODE) {
+        for (iProcessor = 0; iProcessor < nProcessor; iProcessor++) {
+            for (iVertex = 0; iVertex < Buffer_Receive_nVertex[iProcessor]; iVertex++) {
+                Index_Plane_iPoint.push_back( Buffer_Receive_Vertices[ iProcessor*MaxLocalVertex*2 + iVertex*2 + 0] );
+                Index_Plane_jPoint.push_back( Buffer_Receive_Vertices[ iProcessor*MaxLocalVertex*2 + iVertex*2 + 1] );
+            }
+        }
+    }
+    
+    
+    
+    
+    delete[] Buffer_Send_Coord;      delete[] Buffer_Receive_Coord;
+    delete[] Buffer_Send_Vertices;   delete[] Buffer_Receive_Vertices;
+    delete[] Buffer_Send_nVertex;    delete[] Buffer_Receive_nVertex;
     
 #endif
     
@@ -5714,6 +5734,10 @@ void CPhysicalGeometry::ComputeGrid_Planes(double *Plane_P0, double *Plane_Norma
             Xcoord_Plane.erase (Xcoord_Plane.begin() + Duplicate[iVertex-1]);
             Ycoord_Plane.erase (Ycoord_Plane.begin() + Duplicate[iVertex-1]);
             Zcoord_Plane.erase (Zcoord_Plane.begin() + Duplicate[iVertex-1]);
+            
+            Index_Plane_iPoint.erase (Index_Plane_iPoint.begin() + Duplicate[iVertex-1]);
+            Index_Plane_jPoint.erase (Index_Plane_jPoint.begin() + Duplicate[iVertex-1]);
+            
         }
         
         

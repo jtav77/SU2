@@ -2746,21 +2746,53 @@ void CEulerSolver::SetDissipation_Switch(CGeometry *geometry, CConfig *config) {
 }
 
 void CEulerSolver::Plane_Sections(CGeometry *geometry, CConfig *config) {
-	unsigned short iPlane, nPlane;
+	unsigned short iPlane, nPlane,iDim,axis_Dim, nPt_r, nPt_theta, iPt_r, iPt_theta, iPoint, jPoint;
 	double **Plane_P0, **Plane_Normal, MinPlane, MaxPlane;
     vector<double> *Xcoord_Plane, *Ycoord_Plane, *Zcoord_Plane;
+    vector<unsigned long> *Index_iPoint, *Index_jPoint;
+    vector<double> *Xcoord_Radial, *Ycoord_Radial, *Zcoord_Radial;
+    vector<double> *Pressure_Plane, *Temperature_Plane;
+    vector<double> *Pressure_Radial, *Temperature_Radial;
+    
+    double rmax = 1.0;
+    double dtheta = 2.0*PI_NUMBER/(nPt_theta);
+    double dr     = rmax/(nPt_r - 1.0);
+    double r, theta,x,y,z;
+    double pr, temp, d1, d2,d3,dist;
+    double *iCoord, *jCoord;
+    
     
     /*--- Each plane is identified with a point on it, and it's normal --*/
     
     if (nDim == 3) {
-        nPlane = 3;  // Maximum number of planes 
-        MinPlane = 0; // coordinate of the first plane
-        MaxPlane = 14; //coordinate of the last plane
+        nPlane    = 3;    // Maximum number of planes 
+        MinPlane  = 0;    // coordinate of the first plane
+        MaxPlane  = 14;   // coordinate of the last plane
+        axis_Dim  = 0;    // axis of planes
+        nPt_r     = 10;   // number of points in the radial direction in every sliced plane
+        nPt_theta = 10;   // number of points in the azimuthal direction in every sliced plane
         
-        /*--- brief Do not know what these vectors do ???? ---*/
+        /*--- brief These vectors are going to store the new coordinates on the planes ---*/
         Xcoord_Plane = new vector<double> [nPlane]; 
         Ycoord_Plane = new vector<double> [nPlane];
         Zcoord_Plane = new vector<double> [nPlane];
+        
+        /*--- brief These vectors are going to store the new coordinates on the planes ---*/
+        Pressure_Plane = new vector<double> [nPlane]; 
+        Temperature_Plane = new vector<double> [nPlane];
+        
+        /*--- brief These vectors are going to store the indicies of the nodes of the edge that intersects the plane to form the above points ---*/
+        Index_iPoint = new vector<unsigned long> [nPlane]; 
+        Index_jPoint = new vector<unsigned long> [nPlane]; 
+        
+        /*--- brief These vectors store the x,y,z coordinates of the new points formed using a radial 
+         coordinate system on each plane ---*/
+        Xcoord_Radial = new vector<double> [nPlane]; 
+        Ycoord_Radial = new vector<double> [nPlane];
+        Zcoord_Radial = new vector<double> [nPlane];
+        
+        Pressure_Radial = new vector<double> [nPlane];
+        Temperature_Radial = new vector<double> [nPlane];
         
         /*--- A vector that will store the x,y,z coordinates of a point on each plane ---*/
         Plane_P0 = new double *[nPlane];
@@ -2774,14 +2806,154 @@ void CEulerSolver::Plane_Sections(CGeometry *geometry, CConfig *config) {
         
         /*--- Fill the normal vectors, and the coordinates of a point on each plane ---*/
         for (iPlane = 0; iPlane < nPlane; iPlane++) {
-            Plane_Normal[iPlane][0] = 0.0;    Plane_P0[iPlane][0] = 0.0;
-            Plane_Normal[iPlane][1] = 1.0;    Plane_P0[iPlane][1] = MinPlane + iPlane*(MaxPlane - MinPlane)/double(nPlane-1);
-            Plane_Normal[iPlane][2] = 0.0;    Plane_P0[iPlane][2] = 0.0;
+            for (iDim = 0; iDim < nDim; iDim++) {
+                Plane_Normal[iPlane][iDim] = 0.0;    
+                Plane_P0[iPlane][iDim] = 0.0;
+            }
+            Plane_Normal[iPlane][axis_Dim] = 1.0;    
+            Plane_P0[iPlane][axis_Dim] = MinPlane + iPlane*(MaxPlane - MinPlane)/double(nPlane-1);
             
             geometry->ComputeGrid_Planes(Plane_P0[iPlane], Plane_Normal[iPlane], iPlane, config,
-                                         Xcoord_Plane[iPlane], Ycoord_Plane[iPlane], Zcoord_Plane[iPlane], true);
+                                         Xcoord_Plane[iPlane], Ycoord_Plane[iPlane], Zcoord_Plane[iPlane], 
+                                         Index_iPoint[iPlane],  Index_jPoint[iPlane], true);
+            
+            
+            for (unsigned short iIntersectedPt = 0; iIntersectedPt <  Xcoord_Plane[iPlane].size(); iIntersectedPt++) {
+                
+                
+                iPoint = Index_iPoint[iPlane][iIntersectedPt];
+                jPoint = Index_jPoint[iPlane][iIntersectedPt];
+                
+                iCoord = geometry->node[iPoint]->GetCoord();
+                jCoord = geometry->node[jPoint]->GetCoord();
+                
+                x =  Xcoord_Plane[iPlane][iIntersectedPt];
+                y =  Ycoord_Plane[iPlane][iIntersectedPt];
+                z =  Zcoord_Plane[iPlane][iIntersectedPt];
+                
+                d1 = sqrt((x-iCoord[0])*(x-iCoord[0]) + (y-iCoord[1])*(y-iCoord[1]) +  (z-iCoord[2])*(z-iCoord[2]));
+                d2 = sqrt((x-jCoord[0])*(x-jCoord[0]) + (y-jCoord[1])*(y-jCoord[1]) +  (z-jCoord[2])*(z-jCoord[2]));
+                
+                pr   = (d1*node[iPoint]->GetPressure(false) + d2*node[jPoint]->GetPressure(false))/ (d1+d2+EPS);
+                temp = (d1*node[iPoint]->GetTemperature()   + d2*node[jPoint]->GetTemperature())/ (d1+d2+EPS);
+                Pressure_Plane[iPlane].push_back(pr);
+                Temperature_Plane[iPlane].push_back(temp);                
+            }
+            
         }
         
+        
+        /*--- First store the coordinates of the center point on all the planes ---*/
+        for (iPlane = 0; iPlane < nPlane; iPlane++) {
+            Xcoord_Radial[iPlane].push_back(MinPlane + iPlane*(MaxPlane - MinPlane)/double(nPlane-1));
+            Ycoord_Radial[iPlane].push_back(0);
+            Zcoord_Radial[iPlane].push_back(0);
+        }
+        
+        for (iPt_theta = 0; iPt_theta < nPt_theta; iPt_theta ++){ 
+            theta = iPt_theta*dtheta;
+            for (iPt_r = 1; iPt_r < nPt_r; iPt_r++){
+                r = iPt_r*dr;
+                y = r*cos(theta); 
+                z = r*sin(theta);
+                x = MinPlane + iPlane*(MaxPlane - MinPlane)/double(nPlane-1);
+                for (iPlane = 0; iPlane < nPlane; iPlane++) {
+                    /*--- Then store the coordinates of all the points on each plane, in a radial grid.  ---*/
+                    /*--- The second coordinate on each plane corresponds to theta = 0, r = dr  ---*/
+                    /*--- The third coordinate on each plane corresponds to theta = 0, r = 2*dr and so on ... ---*/
+                    Xcoord_Radial[iPlane].push_back(x);
+                    Ycoord_Radial[iPlane].push_back(y);
+                    Zcoord_Radial[iPlane].push_back(z);
+                    
+                    /*--- Then, for this point on the radial grid, loop over all the points on the planar grid, and find three closet points to this point on the radial grid ---*/
+                    
+                    d1 = -1.0; d2 = -1.0; d3 = -1.0;
+                    double Pr, Pr1, Pr2, Pr3;
+                    double temp, temp1, temp2, temp3;
+                    double x1,y1,z1, x2,y2,z2, x3,y3,z3;
+                    
+                                        
+                    for (iPoint = 0; iPoint <  Xcoord_Plane[iPlane].size(); iPoint++) {
+                        dist = sqrt((x- Xcoord_Plane[iPlane][0])*(x- Xcoord_Plane[iPlane][0]) + 
+                                    (y- Ycoord_Plane[iPlane][1])*(y- Ycoord_Plane[iPlane][1]) +  
+                                    (z- Zcoord_Plane[iPlane][2])*(z- Zcoord_Plane[iPlane][2]));
+                        
+                        if (dist >= d1)     {
+                            d1 = dist;
+                            x1 = Xcoord_Plane[iPlane][iPoint];
+                            y1 = Ycoord_Plane[iPlane][iPoint];
+                            z1 = Zcoord_Plane[iPlane][iPoint];
+                            Pr1       = Pressure_Plane[iPlane][iPoint];
+                            temp1     = Temperature_Plane[iPlane][iPoint];
+                        }
+                        
+                        else if(dist >= d2) {
+                            d2 = dist;
+                            x2 = Xcoord_Plane[iPlane][iPoint];
+                            y2 = Ycoord_Plane[iPlane][iPoint];
+                            z2 = Zcoord_Plane[iPlane][iPoint];
+                            Pr2       = Pressure_Plane[iPlane][iPoint];
+                            temp2     = Temperature_Plane[iPlane][iPoint];
+                            
+                        }
+                        else if(dist >= d3) {
+                            d3 = dist;
+                            x3 = Xcoord_Plane[iPlane][iPoint];
+                            y3 = Ycoord_Plane[iPlane][iPoint];
+                            z3 = Zcoord_Plane[iPlane][iPoint];
+                            Pr3   = Pressure_Plane[iPlane][iPoint];
+                            temp3 = Temperature_Plane[iPlane][iPoint];
+                        }
+                        
+                    }
+                    
+                    double a,b,c, ooDen;
+                    
+                    ooDen  = 1.0/(y1*z2 - y2*z1 - y1*z3 + y3*z1 + y2*z3 - y3*z2 + EPS);
+                    double a11, a12, a13;
+                    double a21, a22, a23;
+                    double a31, a32, a33;
+                    
+                    a11 =  (z2 - z3);       a12 = -(z1 - z3);        a13 =  (z1 - z2);
+                    a21 = -(y2 - y3);       a22 =  (y1 - y3);        a23 = -(y1 - y2);
+                    a31 =  (y2*z3 - y3*z2); a32 = -(y1*z3 - y3*z1);  a33 =  (y1*z2 - y2*z1);
+                    
+                    a = (a11*Pr1 + a12*Pr2 + a13*Pr3)*ooDen;
+                    b = (a21*Pr1 + a22*Pr2 + a23*Pr3)*ooDen;
+                    c = (a31*Pr1 + a32*Pr2 + a33*Pr3)*ooDen;
+                    
+                    /*--- Pressure(x,y,z) = a*y + b*z + c ---*/
+                    
+                    // |-       -||-|   |-     -|
+                    // | y1 z1 1 ||a|   |  Pr1  |
+                    // | y2 z2 1 ||b| = |  Pr2  |
+                    // | y3 z3 1 ||c|   |  Pr3  |
+                    // |_       _||_|   |_     _|
+                    
+                    
+                    Pr = a*y + b*z + c;
+                    
+                    /*--- Temperature(x,y,z) = a*y + b*z + c ---*/
+                    
+                    // |-       -||-|   |-     -|
+                    // | y1 z1 1 ||a|   |  temp1  |
+                    // | y2 z2 1 ||b| = |  temp2  |
+                    // | y3 z3 1 ||c|   |  temp3  |
+                    // |_       _||_|   |_     _|    
+                    
+                    a = (a11*temp1 + a12*temp2 + a13*temp3)*ooDen;
+                    b = (a21*temp1 + a22*temp2 + a23*temp3)*ooDen;
+                    c = (a31*temp1 + a32*temp2 + a33*temp3)*ooDen;
+                    
+                    temp = a*y + b*z +c;
+                    
+                    Pressure_Radial[iPlane].push_back(Pr);
+                    Temperature_Radial[iPlane].push_back(temp);
+                }
+            }
+        }
+        
+    
         delete [] Xcoord_Plane;
         delete [] Ycoord_Plane;
         delete [] Zcoord_Plane;
