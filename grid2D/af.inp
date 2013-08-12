@@ -1,0 +1,28 @@
+grid.orig
+ $INPUTS
+ JMAX = 267, KMAX =3, LMAX = 61,
+ IHALF = 0,
+ JTAIL1= 41, KTIP  = 3,
+ FSMACH = 0.3,
+ FMTIP  = 0.0,
+ IPLAN = -1, RARTIO=13.6,
+ INVISC = .TRUE.,
+ ICHAR=1,
+ TMAX = 6.,
+ OUTERB = 0.9,
+ NBLADE=1,
+ DSIN = 1.23e-5,
+ DXLE = 0.0005,
+ DXTAIL = 0.01,
+ DXSH = 0.0000,
+ XSH = 0.0,
+ RCLUST=0.0,
+ DRCLUST=0.0,
+ $END
+ $CUTS
+ $END
+ $DEFIN
+  NAIRDEF = 2,
+  RAIRDEF = 0.,1.
+  AIRDEF = "airfoil.txt"
+ $END
