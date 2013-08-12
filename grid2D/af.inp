@@ -9,7 +9,7 @@ grid.orig
  INVISC = .TRUE.,
  ICHAR=1,
  TMAX = 6.,
- OUTERB = 0.9,
+ OUTERB = 20.,
  NBLADE=1,
  DSIN = 1.23e-5,
  DXLE = 0.0005,
